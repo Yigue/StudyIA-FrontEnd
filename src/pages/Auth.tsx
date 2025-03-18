@@ -1,4 +1,4 @@
-import  { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const Auth = () => {
@@ -7,6 +7,23 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // Check Supabase connection on mount
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  const checkConnection = async () => {
+    try {
+      const { error } = await supabase.from('subjects').select('count').single();
+      if (error && error.message.includes('Failed to fetch')) {
+        setConnectionError('No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.');
+      }
+    } catch (err) {
+      console.error('Connection check error:', err);
+    }
+  };
 
   const validatePassword = (password: string) => {
     if (password.length < 6) {
@@ -28,40 +45,34 @@ const Auth = () => {
     setError(null);
 
     try {
-      let authResponse;
-      
       if (isSignUp) {
-        authResponse = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin
+          }
         });
+        if (error) throw error;
       } else {
-        authResponse = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        if (error) throw error;
       }
-
-      if (authResponse.error) throw authResponse.error;
-      
-      // Si el registro fue exitoso
-      if (isSignUp && authResponse.data?.user) {
-        setError('Por favor verifica tu correo electrónico para continuar');
-      }
-      
-    } catch (error) {
-      console.error('Auth error:', error);
+    } catch (error: any) {
       let message = 'Ha ocurrido un error';
       
-      if (error.message.includes('weak-password')) {
-        message = 'La contraseña debe tener al menos 6 caracteres';
-      } else if (error.message.includes('invalid-credentials')) {
+      if (error.message.includes('Failed to fetch')) {
+        message = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+      } else if (error.message.includes('Invalid login credentials')) {
         message = 'Correo electrónico o contraseña incorrectos';
-      } else if (error.message.includes('not-confirmed')) {
+      } else if (error.message.includes('Email not confirmed')) {
         message = 'Por favor, confirma tu correo electrónico';
-      } else if (error.message.includes('already-registered')) {
+      } else if (error.message.includes('User already registered')) {
         message = 'Este correo electrónico ya está registrado';
-      } else if (error.message.includes('invalid-email')) {
+      } else if (error.message.includes('Invalid email')) {
         message = 'Por favor, ingresa un correo electrónico válido';
       }
       
@@ -70,6 +81,24 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  if (connectionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+            {connectionError}
+          </div>
+          <button
+            onClick={checkConnection}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Reintentar conexión
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

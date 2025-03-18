@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileUp, Brain, X, Upload, Loader2, BookOpen, LayoutGrid, Type, FolderPlus, AlertCircle } from 'lucide-react';
+import { FileUp, Book, Brain, X, Upload, Loader2, BookOpen, LayoutGrid, Type, FolderPlus, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { analyzeContent } from '../lib/openai';
 

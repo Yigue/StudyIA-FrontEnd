@@ -1,6 +1,6 @@
-import  { useState, useEffect } from 'react';
-import { Search, Filter, BookOpen, Star, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, BookOpen, Star, ArrowLeft, ArrowRight } from 'lucide-react';
+import { mockFlashcards, mockSubjects } from '../lib/mockData';
 
 interface Flashcard {
   id: string;
@@ -18,77 +18,24 @@ interface Flashcard {
 }
 
 const FlashcardsReview = () => {
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [filteredFlashcards, setFilteredFlashcards] = useState<Flashcard[]>([]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>(mockFlashcards);
+  const [filteredFlashcards, setFilteredFlashcards] = useState<Flashcard[]>(mockFlashcards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     difficulty: 'all',
     subject: 'all',
-    status: 'all' // 'pending', 'due', 'completed'
+    status: 'all'
   });
-  const [subjects, setSubjects] = useState<{id: string, name: string}[]>([]);
-
-  useEffect(() => {
-    fetchFlashcards();
-    fetchSubjects();
-  }, []);
 
   useEffect(() => {
     filterFlashcards();
-  }, [flashcards, searchTerm, filters]);
-
-  const fetchFlashcards = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select(`
-          *,
-          material:material_id (
-            title,
-            subject:subject_id (
-              name
-            )
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('next_review', { ascending: true });
-
-      if (error) throw error;
-      setFlashcards(data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error al cargar flashcards:', error);
-      setLoading(false);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('id, name')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      setSubjects(data || []);
-    } catch (error) {
-      console.error('Error al cargar materias:', error);
-    }
-  };
+  }, [searchTerm, filters]);
 
   const filterFlashcards = () => {
     let filtered = [...flashcards];
 
-    // Filtrar por término de búsqueda
     if (searchTerm) {
       filtered = filtered.filter(card => 
         card.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -97,7 +44,6 @@ const FlashcardsReview = () => {
       );
     }
 
-    // Filtrar por dificultad
     if (filters.difficulty !== 'all') {
       filtered = filtered.filter(card => {
         const diff = parseInt(filters.difficulty);
@@ -105,14 +51,12 @@ const FlashcardsReview = () => {
       });
     }
 
-    // Filtrar por materia
     if (filters.subject !== 'all') {
       filtered = filtered.filter(card => 
         card.material.subject.name === filters.subject
       );
     }
 
-    // Filtrar por estado
     if (filters.status !== 'all') {
       const now = new Date();
       filtered = filtered.filter(card => {
@@ -123,7 +67,7 @@ const FlashcardsReview = () => {
           case 'due':
             return reviewDate <= now;
           case 'completed':
-            return false; // Para futuras implementaciones
+            return false;
           default:
             return true;
         }
@@ -135,36 +79,19 @@ const FlashcardsReview = () => {
     setShowAnswer(false);
   };
 
-  const updateFlashcardDifficulty = async (difficulty: number) => {
-    try {
-      const flashcard = filteredFlashcards[currentIndex];
-      const nextReviewDate = new Date();
-      const daysToAdd = Math.pow(2, difficulty - 1);
-      nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
+  const updateFlashcardDifficulty = (difficulty: number) => {
+    const flashcard = filteredFlashcards[currentIndex];
+    const nextReviewDate = new Date();
+    const daysToAdd = Math.pow(2, difficulty - 1);
+    nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
 
-      const { error } = await supabase
-        .from('flashcards')
-        .update({
-          difficulty,
-          next_review: nextReviewDate.toISOString()
-        })
-        .eq('id', flashcard.id);
-
-      if (error) throw error;
-
-      // Actualizar estado local
-      const updatedFlashcards = flashcards.map(fc =>
-        fc.id === flashcard.id
-          ? { ...fc, difficulty, next_review: nextReviewDate.toISOString() }
-          : fc
-      );
-      setFlashcards(updatedFlashcards);
-
-      // Pasar a la siguiente tarjeta
-      handleNext();
-    } catch (error) {
-      console.error('Error al actualizar flashcard:', error);
-    }
+    const updatedFlashcards = flashcards.map(fc =>
+      fc.id === flashcard.id
+        ? { ...fc, difficulty, next_review: nextReviewDate.toISOString() }
+        : fc
+    );
+    setFlashcards(updatedFlashcards);
+    handleNext();
   };
 
   const handleNext = () => {
@@ -180,14 +107,6 @@ const FlashcardsReview = () => {
       setShowAnswer(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
 
   return (
     <div className="p-8">
@@ -243,7 +162,7 @@ const FlashcardsReview = () => {
                       className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
                       <option value="all">Todas las materias</option>
-                      {subjects.map(subject => (
+                      {mockSubjects.map(subject => (
                         <option key={subject.id} value={subject.name}>
                           {subject.name}
                         </option>

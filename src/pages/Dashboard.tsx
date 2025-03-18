@@ -1,4 +1,4 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, Clock, Trophy, TrendingUp, Calendar, Target, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 

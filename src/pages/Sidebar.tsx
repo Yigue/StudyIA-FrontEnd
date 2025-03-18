@@ -1,5 +1,5 @@
 import React from 'react';
-import { Book, Brain, Layout, Settings, LayoutGrid } from 'lucide-react';
+import { Book, Brain, Layout, Search, Settings, Trophy, LayoutGrid } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -12,9 +12,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'study', icon: Brain, label: 'Estudiar' },
     { id: 'library', icon: Book, label: 'Biblioteca' },
     { id: 'flashcards', icon: LayoutGrid, label: 'Flashcards' },
+    { id: 'search', icon: Search, label: 'Buscar' },
+    { id: 'progress', icon: Trophy, label: 'Progreso' },
     { id: 'settings', icon: Settings, label: 'Ajustes' },
-    // { id: 'search', icon: Search, label: 'Buscar' },
-    // { id: 'progress', icon: Trophy, label: 'Progreso' },
   ];
 
   return (
