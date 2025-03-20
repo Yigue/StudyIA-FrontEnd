@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { ApiResponse, ApiError } from '../../types';
 
-const baseURL = '/api';
+const baseURL = import.meta.env.VITE_API_BASEURL;
 
 export const axiosInstance: AxiosInstance = axios.create({
   baseURL,
@@ -10,18 +10,38 @@ export const axiosInstance: AxiosInstance = axios.create({
   },
 });
 
+axiosInstance.interceptors.request.use((config) => {
+  const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expirado o inválido
+      localStorage.removeItem('auth-storage');
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const setAuthToken = (token: string) => {
   axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
-export async function httpClient<T>(
+export async function httpClient<TResponse, TRequest = void>(
   endpoint: string,
   options: {
     method?: string;
-    data?: T ;
+    data?: TRequest;
     headers?: Record<string, string>;
   } = {}
-): Promise<ApiResponse<T>> {
+): Promise<ApiResponse<TResponse>> {
   try {
     const response = await axiosInstance({
       url: endpoint,
