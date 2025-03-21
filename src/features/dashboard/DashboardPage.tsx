@@ -1,11 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Brain, Clock, Trophy, Target, BookOpen } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { StudyStats, StudySession, FlashcardReview } from './types/dashboard.types';
-import { generateMockStudySessions, calculateTotalStudyHours, calculateAchievements, calculateStreak } from './utils/dashboard.utils';
-import { StatsCard } from './components/StatsCard';
-import { StudyActivityChart } from './components/StudyActivityChart';
-import { UpcomingReviews } from './components/UpcomingReviews';
+import { useState, useEffect } from "react";
+import { Brain, Clock, Trophy, Target, BookOpen } from "lucide-react";
+import {
+  StudyStats,
+  StudySession,
+  FlashcardReview,
+} from "./types/dashboard.types";
+import {
+  generateMockStudySessions,
+  calculateTotalStudyHours,
+  calculateAchievements,
+  calculateStreak,
+} from "./utils/dashboard.utils";
+import { StatsCard } from "./components/StatsCard";
+import { StudyActivityChart } from "./components/StudyActivityChart";
+import { UpcomingReviews } from "./components/UpcomingReviews";
+import { useFlashcardsStore } from "../flashcards/store/flashcardsStore";
+import { useMaterials } from "../../hook/useMaterials";
 
 const DashboardPage = () => {
   const [stats, setStats] = useState<StudyStats>({
@@ -13,63 +23,44 @@ const DashboardPage = () => {
     totalFlashcards: 0,
     studyHours: 0,
     achievements: 0,
-    streak: 0
+    streak: 0,
   });
-  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
-  const [upcomingReviews, setUpcomingReviews] = useState<FlashcardReview[]>([]);
+  const { flashcards } = useFlashcardsStore();
+  const { materials } = useMaterials();
 
+  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
+  const [upcomingReviews] = useState<FlashcardReview[]>([]);
 
   useEffect(() => {
-    fetchDashboardData();
+    const mockSessions = generateMockStudySessions();
+
+    setStats({
+      totalMaterials: materials?.length || 0,
+      totalFlashcards: flashcards?.length || 0,
+      studyHours: calculateTotalStudyHours(mockSessions),
+      achievements: calculateAchievements(
+        materials?.length || 0,
+        flashcards?.length || 0
+      ),
+      streak: calculateStreak(mockSessions),
+    });
+    setStudySessions(mockSessions);
   }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: materials } = await supabase
-        .from('study_materials')
-        .select('id')
-        .eq('user_id', user.id);
-
-      const { data: flashcards } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('next_review', new Date().toISOString())
-        .order('next_review');
-
-      const mockSessions = generateMockStudySessions();
-
-      setStats({
-        totalMaterials: materials?.length || 0,
-        totalFlashcards: flashcards?.length || 0,
-        studyHours: calculateTotalStudyHours(mockSessions),
-        achievements: calculateAchievements(materials?.length || 0, flashcards?.length || 0),
-        streak: calculateStreak(mockSessions)
-      });
-
-      setStudySessions(mockSessions);
-      setUpcomingReviews(flashcards?.slice(0, 5) || []);
-    ;
-    } catch (error) {
-      console.error('Error al cargar datos del dashboard:', error);
-;
-    }
-  };
-
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">¡Bienvenido de vuelta!</h2>
+        <h2 className="text-2xl font-bold text-gray-800">
+          ¡Bienvenido de vuelta!
+        </h2>
         <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-lg">
           <Target className="w-5 h-5 text-indigo-600" />
-          <span className="font-medium text-indigo-600">{stats.streak} días de racha</span>
+          <span className="font-medium text-indigo-600">
+            {stats.streak} días de racha
+          </span>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           icon={BookOpen}

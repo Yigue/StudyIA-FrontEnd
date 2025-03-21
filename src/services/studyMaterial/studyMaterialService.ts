@@ -1,69 +1,65 @@
 import { StudyMaterial } from '../../types';
+import { StudyMaterialDTO } from '../../types/studyMaterial/studyMaterialRequest';
 import { httpClient } from '../api/httpClient';
 
-
-export async function getAllStudyMaterials(authToken:string) {
-  return httpClient<StudyMaterial>(`/materials`, {
-    method: "GET",
+export async function getAllStudyMaterials(authToken: string) {
+  const res=await httpClient<StudyMaterial[]>('/materials', {
+    method: 'GET',
     headers: {
-      Authorization: authToken,
-    },
+      Authorization: `Bearer ${authToken}`
+    }
   });
+  console.log(res)
+  return res
 }
-export async function getMaterialById(id: string,authToken:string) {
+
+export async function getMaterialById(id: string, authToken: string) {
   return httpClient<StudyMaterial>(`/materials/${id}`, {
-    method: "GET",
+    method: 'GET',
     headers: {
-      Authorization: authToken,
-    },
+      Authorization: `Bearer ${authToken}`
+    }
   });
 }
-export async function uploadMaterial(file: File,authToken:string) {
-  const formData = new FormData();
-  formData.append('file', file);
 
-  return httpClient<FormData>('/materials/upload', {
+export async function uploadMaterial(materialData: StudyMaterialDTO, authToken: string) {
+  const formData = new FormData();
+  if (materialData.file) {
+    formData.append('file', materialData.file);
+  }
+  formData.append('data', JSON.stringify(materialData));
+
+  return httpClient<StudyMaterial,FormData>('/materials/upload', {
     method: 'POST',
-    data:formData,
+    data: formData,
     headers: {
-      Authorization:authToken
-    },
+      Authorization: `Bearer ${authToken}`
+    }
   });
 }
-export async function uploadAndProcess(file: File,authToken:string) {
-  const formData = new FormData();
-  formData.append('file', file);
 
-  return httpClient<FormData>('/materials/uploadAndProcess', {
+export async function uploadAndProcess(materialData: StudyMaterialDTO, authToken: string) {
+  const formData = new FormData();
+  if (materialData.file) {
+    formData.append('file', materialData.file);
+  }
+  formData.append('data', JSON.stringify(materialData));
+
+  return httpClient<StudyMaterial,FormData>('/materials/uploadAndProcess', {
     method: 'POST',
-    data:formData,
+    data: formData,
     headers: {
-      Authorization:authToken
-    },
+      Authorization: `Bearer ${authToken}`
+    }
   });
 }
-export async function materialGenerateSummary(file: File,authToken:string,id:string) {
-  const formData = new FormData();
-  formData.append('file', file);
 
-  return httpClient<FormData>(`/materials/GenerateSummary/${id}` , {
-    method: 'POST',
-    data:formData,
+export async function deleteMaterial(id: string, authToken: string) {
+  return httpClient<void>(`/materials/${id}`, {
+    method: 'DELETE',
     headers: {
-      Authorization:authToken
-    },
-  });
-}
-export async function materialGenerateFlashcard(file: File,authToken:string,id:string) {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  return httpClient<FormData>(`/materials/GenerateFlashcard/${id}`, {
-    method: 'POST',
-    data:formData,
-    headers: {
-      Authorization:authToken
-    },
+      Authorization: `Bearer ${authToken}`
+    }
   });
 }
 

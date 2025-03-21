@@ -1,71 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Book } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { StudyMaterial, Flashcard } from './types/library.types';
 import { MaterialsList } from './components/MaterialsList';
 import { MaterialDetail } from './components/MaterialDetail';
 import { FlashcardReview } from './components/FlashcardReview';
+import { useMaterials } from '../../hook/useMaterials';
+import { useFlashcards } from '../../hook/useFlashcards';
+import { StudyMaterial } from '../../types';
 
 const LibraryPage = () => {
-  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+ 
   const [selectedMaterial, setSelectedMaterial] = useState<StudyMaterial | null>(null);
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+
   const [showAnswer, setShowAnswer] = useState<boolean>(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState<number>(0);
 
-  useEffect(() => {
-    fetchMaterials();
-  }, []);
+  const {materials}=useMaterials()
+  const {flashcards}=useFlashcards()
 
-  const fetchMaterials = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
+  console.log(flashcards)
 
-      const { data, error } = await supabase
-        .from('study_materials')
-        .select(`
-          id,
-          title,
-          content,
-          summary,
-          created_at,
-          subject:subject_id!inner (name)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setMaterials(data || []);
-    } catch (error) {
-      console.error('Error al cargar materiales:', error);
-    }
-  };
 
-  const fetchFlashcards = async (materialId: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
-
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('material_id', materialId)
-        .eq('user_id', user.id)
-        .order('next_review', { ascending: true });
-
-      if (error) throw error;
-      setFlashcards(data || []);
-      setCurrentFlashcardIndex(0);
-      setShowAnswer(false);
-    } catch (error) {
-      console.error('Error al cargar flashcards:', error);
-    }
-  };
 
   const handleMaterialSelect = (material: StudyMaterial) => {
     setSelectedMaterial(material);
-    fetchFlashcards(material.id);
   };
 
   const handleUpdateDifficulty = async (difficulty: number) => {
@@ -87,11 +46,6 @@ const LibraryPage = () => {
 
       if (error) throw error;
 
-      setFlashcards(prev => prev.map(fc => 
-        fc.id === currentFlashcard.id 
-          ? { ...fc, difficulty, next_review: nextReviewDate.toISOString() }
-          : fc
-      ));
 
       if (currentFlashcardIndex < flashcards.length - 1) {
         setCurrentFlashcardIndex(prev => prev + 1);
@@ -123,7 +77,10 @@ const LibraryPage = () => {
               <MaterialDetail material={selectedMaterial} />
               {flashcards.length > 0 && (
                 <FlashcardReview
-                  flashcard={currentFlashcard}
+                  flashcard={{
+                    ...currentFlashcard,
+                    next_review: new Date(currentFlashcard.next_review)
+                  }}
                   totalFlashcards={flashcards.length}
                   currentIndex={currentFlashcardIndex}
                   showAnswer={showAnswer}

@@ -1,83 +1,60 @@
-import { supabase } from '../../../lib/supabase';
-import {AnalysisResult } from '../types/study.types';
+import { AnalysisResult } from '../types/study.types';
+import { httpClient } from '../../../services/api/httpClient';
 
-export const fetchSubjectsFromDB = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Usuario no autenticado');
-  }
+interface Subject {
+  id: string;
+  name: string;
+}
 
-  const { data, error } = await supabase
-    .from('subjects')
-    .select('id, name')
-    .eq('user_id', user.id)
-    .order('name');
+export const fetchSubjectsFromDB = async (token: string) => {
+  const response = await httpClient<Subject[]>('/subjects', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
   
-  if (error) throw error;
-  return data || [];
+  return response.data || [];
 };
 
-export const createNewSubjectInDB = async (name: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Usuario no autenticado');
-  }
+export const createNewSubjectInDB = async (name: string, token: string) => {
+  const response = await httpClient<Subject, {name: string}>('/subjects', {
+    method: 'POST',
+    data: { name },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
 
-  const { data, error } = await supabase
-    .from('subjects')
-    .insert([{ 
-      name,
-      user_id: user.id 
-    }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return response.data;
 };
 
 export const saveMaterialAndFlashcardsInDB = async (
   text: string,
   result: AnalysisResult,
   selectedSubject: string,
-  title: string
+  title: string,
+  token: string
 ) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Usuario no autenticado');
-  }
-
-  const { data: material, error: materialError } = await supabase
-    .from('study_materials')
-    .insert([{
+  // Crear material
+  const response = await httpClient<any, any>('/materials/create-with-flashcards', {
+    method: 'POST',
+    data: {
       title,
       content: text,
       summary: result.summary,
       subject_id: selectedSubject,
-      user_id: user.id
-    }])
-    .select()
-    .single();
+      flashcards: result.flashcards.map(fc => ({
+        question: fc.question,
+        answer: fc.answer,
+        difficulty: 3,
+        next_review: new Date().toISOString()
+      }))
+    },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
 
-  if (materialError) throw materialError;
-
-  const flashcardsData = result.flashcards.map(fc => ({
-    question: fc.question,
-    answer: fc.answer,
-    material_id: material.id,
-    user_id: user.id,
-    difficulty: 3,
-    next_review: new Date().toISOString()
-  }));
-
-  const { error: flashcardsError } = await supabase
-    .from('flashcards')
-    .insert(flashcardsData);
-
-  if (flashcardsError) throw flashcardsError;
-
-  return material;
+  return response.data;
 };

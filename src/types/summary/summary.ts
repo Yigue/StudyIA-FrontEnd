@@ -1,4 +1,5 @@
-import { StudyMaterial } from "./StudyMaterial";
+import { StudyMaterial } from "../studyMaterial/studyMaterial";
+
 
 
 export interface Summary {

@@ -1,5 +1,6 @@
 import { LayoutGrid, Clock, Star } from 'lucide-react';
-import { Flashcard } from '../types/library.types';
+import { Flashcard } from '../../../types';
+
 
 interface FlashcardReviewProps {
   flashcard: Flashcard;

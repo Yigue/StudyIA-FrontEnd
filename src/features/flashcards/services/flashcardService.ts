@@ -1,30 +1,36 @@
-import { supabase } from '../../../lib/supabase';
+import { httpClient } from '../../../services/api/httpClient';
 import { Flashcard } from '../../../types';
 
-
 export const flashcardService = {
-  getFlashcards: async () => {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .select('*');
-    if (error) throw error;
-    return data;
+  getFlashcards: async (token: string) => {
+    const response = await httpClient<Flashcard[]>('/flashcards', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
   },
   
-  updateFlashcard: async (id: string, updates: Partial<Flashcard>) => {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .update(updates)
-      .eq('id', id);
-    if (error) throw error;
-    return data;
+  updateFlashcard: async (id: string, updates: Partial<Flashcard>, token: string) => {
+    const response = await httpClient<Flashcard, Partial<Flashcard>>(`/flashcards/${id}`, {
+      method: 'PUT',
+      data: updates,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
   },
   
-  createFlashcard: async (flashcard: Partial<Flashcard>) => {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .insert(flashcard);
-    if (error) throw error;
-    return data;
+  createFlashcard: async (flashcard: Partial<Flashcard>, token: string) => {
+    const response = await httpClient<Flashcard, Partial<Flashcard>>('/flashcards', {
+      method: 'POST',
+      data: flashcard,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
   }
 };

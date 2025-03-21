@@ -1,5 +1,6 @@
 import { BookOpen } from 'lucide-react';
-import { StudyMaterial } from '../types/library.types';
+import { StudyMaterial } from '../../../types';
+
 
 interface MaterialDetailProps {
   material: StudyMaterial;
@@ -13,7 +14,7 @@ export const MaterialDetail = ({ material }: MaterialDetailProps) => (
       </div>
       <div>
         <h3 className="text-lg font-semibold text-gray-800">{material.title}</h3>
-        <p className="text-sm text-gray-600">{material.subject.name}</p>
+        <p className="text-sm text-gray-600">{material.title}</p>
       </div>
     </div>
     <div className="prose max-w-none">

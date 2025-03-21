@@ -12,3 +12,4 @@ export interface Flashcard {
   updated_at: Date;
   type: 'code' | 'normal' | 'multioption';
 }
+

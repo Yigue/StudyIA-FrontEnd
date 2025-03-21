@@ -1,11 +1,13 @@
 import { Book } from 'lucide-react';
-import { StudyMaterial } from '../types/library.types';
+import { StudyMaterial } from '../../../types';
+
 
 interface MaterialsListProps {
   materials: StudyMaterial[];
   selectedMaterial: StudyMaterial | null;
   onSelectMaterial: (material: StudyMaterial) => void;
 }
+
 
 export const MaterialsList = ({ materials, selectedMaterial, onSelectMaterial }: MaterialsListProps) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -27,7 +29,6 @@ export const MaterialsList = ({ materials, selectedMaterial, onSelectMaterial }:
           }`}
         >
           <h4 className="font-medium text-gray-800">{material.title}</h4>
-          <p className="text-sm text-gray-600">{material.subject.name}</p>
           <p className="text-xs text-gray-500 mt-1">
             {new Date(material.created_at).toLocaleDateString()}
           </p>
