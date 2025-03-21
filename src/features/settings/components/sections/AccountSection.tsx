@@ -1,4 +1,4 @@
-import { useAuthActions } from "../../../../hook/userAuth";
+import { useAuthActions } from "../../../../hook/useAuth";
 
 export const AccountSection = () => {
 const {logout}=useAuthActions()

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiResponse, ApiError } from '../../types';
 
 const baseURL = import.meta.env.VITE_API_BASEURL;
@@ -10,28 +10,90 @@ export const axiosInstance: AxiosInstance = axios.create({
   },
 });
 
+let failedAuthAttempts = 0;
+const MAX_AUTH_FAILURES = 3;
+
 axiosInstance.interceptors.request.use((config) => {
-  const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    // Intentar obtener el token desde localStorage
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsedStorage = JSON.parse(authStorage);
+      const token = parsedStorage?.state?.token;
+      if (token) {
+        // Asegurarse de que config.headers exista
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+  } catch (error) {
+    console.error('Error obteniendo el token:', error);
   }
   return config;
 });
 
+// Bandera para evitar múltiples redirecciones
+let isRedirecting = false;
+
+// Conjunto para rastrear URLs que ya fallaron por 401
+const failedUrls = new Set<string>();
+
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Resetear contador de fallos al tener una respuesta exitosa
+    failedAuthAttempts = 0;
+    return response;
+  },
   (error) => {
+    // Solo procesar errores 401 (Unauthorized)
     if (error.response?.status === 401) {
-      // Token expirado o inválido
-      localStorage.removeItem('auth-storage');
-      window.location.href = '/';
+      // Ignorar si la URL ya falló antes (para evitar bucles)
+      const url = error.config.url;
+      if (failedUrls.has(url)) {
+        console.log(`Ignorando error 401 repetido en: ${url}`);
+        return Promise.reject(error);
+      }
+      
+      // Registrar esta URL como fallida
+      failedUrls.add(url);
+      
+      // Incrementar contador para detectar bucles
+      failedAuthAttempts++;
+      
+      // Si hay demasiados fallos en poco tiempo, probablemente hay un bucle
+      if (failedAuthAttempts >= MAX_AUTH_FAILURES) {
+        console.error("Detectado posible bucle de autenticación. Forzando cierre de sesión.");
+        localStorage.removeItem('auth-storage');
+        failedAuthAttempts = 0;
+        
+        // Redirigir solo si no estamos ya redirigiendo
+        if (!isRedirecting) {
+          isRedirecting = true;
+          
+          // Esperar un momento antes de redirigir
+          setTimeout(() => {
+            window.location.href = '/';
+            
+            // Resetear banderas después de un tiempo
+            setTimeout(() => {
+              isRedirecting = false;
+              failedUrls.clear();
+            }, 3000);
+          }, 200);
+        }
+      }
     }
+    
     return Promise.reject(error);
   }
 );
 
 export const setAuthToken = (token: string) => {
-  axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  if (token) {
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete axiosInstance.defaults.headers.common['Authorization'];
+  }
 };
 
 export async function httpClient<TResponse, TRequest = void>(
@@ -43,16 +105,27 @@ export async function httpClient<TResponse, TRequest = void>(
   } = {}
 ): Promise<ApiResponse<TResponse>> {
   try {
-    const response = await axiosInstance({
+    // Creamos una nueva configuración que no sobrescriba los headers de autorización
+    const config: AxiosRequestConfig = {
       url: endpoint,
       method: options.method || 'GET',
       data: options.data,
-      headers: options.headers,
-    });
-
+    };
+    
+    // Si hay headers personalizados, los combinamos con los existentes sin sobrescribir la autorización
+    if (options.headers) {
+      config.headers = {
+        ...options.headers
+      };
+    }
+    
+    const response = await axiosInstance(config);
+    
     return {
-      data: response.data,
+      data: response.data.data,
       error: null,
+      message: response.data.message,
+      success: response.data.success,
       status: response.status,
     };
   } catch (error) {

@@ -1,30 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Book } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { MaterialsList } from './components/MaterialsList';
 import { MaterialDetail } from './components/MaterialDetail';
 import { FlashcardReview } from './components/FlashcardReview';
-import { useMaterials } from '../../hook/useMaterials';
-import { useFlashcards } from '../../hook/useFlashcards';
+import { useMaterials, useMaterialsActions } from '../../hook/useMaterials';
+import { useFlashcards, useFlashcardsActions } from '../../hook/useFlashcards';
 import { StudyMaterial } from '../../types';
 
 const LibraryPage = () => {
- 
   const [selectedMaterial, setSelectedMaterial] = useState<StudyMaterial | null>(null);
-
   const [showAnswer, setShowAnswer] = useState<boolean>(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState<number>(0);
 
-  const {materials}=useMaterials()
-  const {flashcards}=useFlashcards()
+  const { materials } = useMaterials();
+  const { getAllMaterials } = useMaterialsActions();
+  const { flashcards } = useFlashcards();
+  const { getFlashcardsByMaterial, updateFlashcardReview } = useFlashcardsActions();
 
-  console.log(flashcards)
-
-
-
+  // Cargar materiales al montar el componente
+  useEffect(() => {
+    getAllMaterials();
+  }, [getAllMaterials]);
 
   const handleMaterialSelect = (material: StudyMaterial) => {
+    
     setSelectedMaterial(material);
+    // Cargar flashcards relacionadas con el material seleccionado
+    if (material && material.id) {
+      getFlashcardsByMaterial(material.id);
+      setCurrentFlashcardIndex(0);
+      setShowAnswer(false);
+    }
   };
 
   const handleUpdateDifficulty = async (difficulty: number) => {
@@ -36,16 +42,11 @@ const LibraryPage = () => {
     nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
 
     try {
-      const { error } = await supabase
-        .from('flashcards')
-        .update({
-          difficulty,
-          next_review: nextReviewDate.toISOString()
-        })
-        .eq('id', currentFlashcard.id);
-
-      if (error) throw error;
-
+      // Usar el hook para actualizar la dificultad
+      await updateFlashcardReview(currentFlashcard.id, {
+        difficulty,
+        next_review: nextReviewDate.toISOString()
+      });
 
       if (currentFlashcardIndex < flashcards.length - 1) {
         setCurrentFlashcardIndex(prev => prev + 1);
@@ -75,7 +76,7 @@ const LibraryPage = () => {
           {selectedMaterial ? (
             <>
               <MaterialDetail material={selectedMaterial} />
-              {flashcards.length > 0 && (
+              {flashcards.length > 0 && currentFlashcard ? (
                 <FlashcardReview
                   flashcard={{
                     ...currentFlashcard,
@@ -87,6 +88,12 @@ const LibraryPage = () => {
                   onToggleAnswer={() => setShowAnswer(true)}
                   onUpdateDifficulty={handleUpdateDifficulty}
                 />
+              ) : (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+                  <p className="text-gray-600">
+                    No hay flashcards disponibles para este material
+                  </p>
+                </div>
               )}
             </>
           ) : (

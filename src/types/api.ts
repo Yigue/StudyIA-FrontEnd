@@ -2,6 +2,8 @@ export interface ApiResponse<T> {
   data: T;
   error: ApiError | null;
   status: number;
+  message:string
+  success:boolean
 }
 
 export interface ApiError {
@@ -11,11 +13,11 @@ export interface ApiError {
   details?: Record<string, undefined>;
 }
 
-export type ApiErrorCode = 
-  | 'VALIDATION_ERROR'
-  | 'NOT_FOUND'
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
-  | 'INTERNAL_ERROR'
-  | 'BAD_REQUEST'
-  | 'UNKNOWN_ERROR';
+export type ApiErrorCode =
+  | "VALIDATION_ERROR"
+  | "NOT_FOUND"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "INTERNAL_ERROR"
+  | "BAD_REQUEST"
+  | "UNKNOWN_ERROR";

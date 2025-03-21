@@ -2,41 +2,33 @@ import { Tag } from '../../types';
 import { tagDTO } from '../../types/tag/tagRequest';
 import { httpClient } from '../api/httpClient';
 
-export async function getAllTags(authToken: string) {
+export async function getAllTags() {
   return httpClient<Tag[]>('/tag', {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${authToken}`
-    }
+
   });
 }
 
-export async function createTag(tagData:tagDTO, authToken: string) {
+export async function createTag(tagData:tagDTO, ) {
   return httpClient<Tag,tagDTO>('/tag', {
     method: 'POST',
     data: tagData,
-    headers: {
-      Authorization: `Bearer ${authToken}`
-    }
+
   });
 }
 
-export async function updateTag(id: string, tagData:tagDTO , authToken: string) {
+export async function updateTag(id: string, tagData:tagDTO , ) {
   return httpClient<Tag, tagDTO>(`/tag/${id}`, {
     method: 'PUT',
     data: tagData,
-    headers: {
-      Authorization: `Bearer ${authToken}`
-    }
+
   });
 }
 
-export async function deleteTag(id: string, authToken: string) {
+export async function deleteTag(id: string, ) {
   return httpClient<void>(`/tag/${id}`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${authToken}`
-    }
+
   });
 }
 

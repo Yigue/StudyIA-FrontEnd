@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, useAuthActions } from "../../../hook/userAuth";
+import { useAuth, useAuthActions } from "../../../hook/useAuth";
 import { userRegisterDTO } from "../../../types/user/userRequest";
 
 interface RegisterFormProps {

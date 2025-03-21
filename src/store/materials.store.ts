@@ -11,11 +11,11 @@ interface MaterialsStore {
   uploadProgress: number;
 
   // Actions
-  getAllMaterials: (token: string) => Promise<void>;
-  getMaterialById: (id: string, token: string) => Promise<void>;
-  uploadMaterial: (material: StudyMaterialDTO, token: string) => Promise<void>;
-  uploadAndProcess: (material: StudyMaterialDTO, token: string) => Promise<void>;
-  deleteMaterial: (id: string, token: string) => Promise<void>;
+  getAllMaterials: () => Promise<void>;
+  getMaterialById: (id: string) => Promise<void>;
+  uploadMaterial: (material: StudyMaterialDTO) => Promise<void>;
+  uploadAndProcess: (material: StudyMaterialDTO) => Promise<void>;
+  deleteMaterial: (id: string) => Promise<void>;
   setCurrentMaterial: (material: StudyMaterial | null) => void;
   clearError: () => void;
 }
@@ -27,10 +27,10 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
   error: null,
   uploadProgress: 0,
 
-  getAllMaterials: async (token) => {
+  getAllMaterials: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await materialService.getAllStudyMaterials(token);
+      const response = await materialService.getAllStudyMaterials();
       set({ materials: response.data });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Error loading materials' });
@@ -39,10 +39,10 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
     }
   },
 
-  getMaterialById: async (id, token) => {
+  getMaterialById: async (id) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await materialService.getMaterialById(id, token);
+      const response = await materialService.getMaterialById(id);
       set({ currentMaterial: response.data });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Error loading material' });
@@ -51,10 +51,10 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
     }
   },
 
-  uploadMaterial: async (material, token) => {
+  uploadMaterial: async (material) => {
     try {
       set({ isLoading: true, error: null, uploadProgress: 0 });
-      const response = await materialService.uploadMaterial(material, token);
+      const response = await materialService.uploadMaterial(material);
       set(state => ({
         materials: [...state.materials, response.data],
         uploadProgress: 100
@@ -66,10 +66,10 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
     }
   },
 
-  uploadAndProcess: async (material, token) => {
+  uploadAndProcess: async (material) => {
     try {
       set({ isLoading: true, error: null, uploadProgress: 0 });
-      const response = await materialService.uploadAndProcess(material, token);
+      const response = await materialService.uploadAndProcess(material);
       set(state => ({
         materials: [...state.materials, response.data],
         uploadProgress: 100
@@ -81,10 +81,10 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
     }
   },
 
-  deleteMaterial: async (id, token) => {
+  deleteMaterial: async (id) => {
     try {
       set({ isLoading: true, error: null });
-      await materialService.deleteMaterial(id, token);
+      await materialService.deleteMaterial(id);
       set(state => ({
         materials: state.materials.filter(m => m.id !== id),
         currentMaterial: state.currentMaterial?.id === id ? null : state.currentMaterial

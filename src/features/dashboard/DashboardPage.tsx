@@ -18,6 +18,7 @@ import { useFlashcardsStore } from "../flashcards/store/flashcardsStore";
 import { useMaterials } from "../../hook/useMaterials";
 
 const DashboardPage = () => {
+
   const [stats, setStats] = useState<StudyStats>({
     totalMaterials: 0,
     totalFlashcards: 0,
@@ -33,6 +34,8 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const mockSessions = generateMockStudySessions();
+ 
+    
 
     setStats({
       totalMaterials: materials?.length || 0,

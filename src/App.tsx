@@ -12,7 +12,7 @@ import AuthPage from "./features/auth/AuthPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import MainLayout from "./components/layouts/MainLayout";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
-import { useAuth } from "./hook/userAuth";
+import { useAuth } from "./hook/useAuth";
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");

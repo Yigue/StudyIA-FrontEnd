@@ -1,31 +1,31 @@
 import { AlertCircle } from "lucide-react";
-import { useStudyArea } from "./hooks/useStudyArea";
+
 import { SubjectSelector } from "./components/SubjectSelector";
 import { FileUploader } from "./components/FileUploader";
 import { FilesList } from "./components/FilesList";
 import { TextEditor } from "./components/TextEditor";
 import { AIAssistant } from "./components/AIAssistant";
 import  AnalysisResultsComponent  from "./components/AnalysisResults";
+// import { useMaterials } from "../../hook/useMaterials";
 
 const StudyAreaPage = () => {
-  const { state, handlers, error, successMessage, analysisResult } =
-    useStudyArea();
+  // const {  error,isLoading,currentMaterial} =useMaterials()
 
   return (
     <div className="p-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Área de Estudio</h2>
 
-      {error && (
+      {/* {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-600" />
           <p className="text-red-600">{error}</p>
         </div>
       )}
 
-      {successMessage && (
+      {currentMaterial && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-green-600" />
-          <p className="text-green-600">{successMessage}</p>
+          <p className="text-green-600">{currentMaterial}</p>
         </div>
       )}
 
@@ -46,9 +46,9 @@ const StudyAreaPage = () => {
             onAnalyze={handlers.handleAnalysis}
           />
 
-          {analysisResult && <AnalysisResultsComponent result={analysisResult} />}
-        </div>
-      </div>
+          {analysisResult && <AnalysisResultsComponent result={analysisResult} />} */}
+        {/* </div> */}
+      {/* </div> */}
     </div>
   );
 };

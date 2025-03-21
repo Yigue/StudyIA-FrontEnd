@@ -6,6 +6,7 @@ interface MaterialDetailProps {
   material: StudyMaterial;
 }
 
+
 export const MaterialDetail = ({ material }: MaterialDetailProps) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
     <div className="flex items-center gap-4 mb-4">
@@ -14,12 +15,12 @@ export const MaterialDetail = ({ material }: MaterialDetailProps) => (
       </div>
       <div>
         <h3 className="text-lg font-semibold text-gray-800">{material.title}</h3>
-        <p className="text-sm text-gray-600">{material.title}</p>
+        <p className="text-sm text-gray-600">{material.file_url ? "File" :"Text"}</p>
       </div>
     </div>
     <div className="prose max-w-none">
-      <h4 className="text-gray-800 font-medium mb-2">Resumen</h4>
-      <p className="text-gray-600 whitespace-pre-line">{material.summary}</p>
+      <h4 className="text-gray-800 font-medium mb-2">Contenido</h4>
+      <p className="text-gray-600 whitespace-pre-line">{material.content}</p>
     </div>
   </div>
 );

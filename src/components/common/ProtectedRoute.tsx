@@ -5,7 +5,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
 
-  
   if (isLoading) {
     
     return (

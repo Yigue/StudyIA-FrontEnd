@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Flashcard } from "../types";
-import * as flashcardService from "../services/flashcards/flashcardService";
 import { ReviewDTO } from "../types/flashcards/flashcardsRequest";
+import * as flashcardService from "../services/flashcards/flashcardService";
 
 interface FlashcardsStore {
   flashcards: Flashcard[];
@@ -10,15 +10,14 @@ interface FlashcardsStore {
   error: string | null;
 
   // Actions
-  getAllFlashcards: (token: string) => Promise<void>;
-  getFlashcardsByMaterial: (materialId: string, token: string) => Promise<void>;
-  getFlashcardsForReview: (token: string) => Promise<void>;
+  getAllFlashcards: () => Promise<void>;
+  getFlashcardsByMaterial: (materialId: string) => Promise<void>;
+  getFlashcardsForReview: () => Promise<void>;
   updateFlashcardReview: (
     id: string,
-    difficulty: ReviewDTO,
-    token: string
+    difficulty: ReviewDTO
   ) => Promise<void>;
-  archiveFlashcard: (id: string, token: string) => Promise<void>;
+  archiveFlashcard: (id: string) => Promise<void>;
   setCurrentFlashcard: (flashcard: Flashcard | null) => void;
   clearError: () => void;
 }
@@ -29,10 +28,10 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
   isLoading: false,
   error: null,
 
-  getAllFlashcards: async (token) => {
+  getAllFlashcards: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await flashcardService.getAllFlashcards(token);
+      const response = await flashcardService.getAllFlashcards();
       set({ flashcards: response.data });
     } catch (error) {
       set({
@@ -44,12 +43,11 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
     }
   },
 
-  getFlashcardsByMaterial: async (materialId, token) => {
+  getFlashcardsByMaterial: async (materialId) => {
     try {
       set({ isLoading: true, error: null });
       const response = await flashcardService.getFlashcardsByMaterial(
-        materialId,
-        token
+        materialId
       );
       set({ flashcards: response.data });
     } catch (error) {
@@ -64,10 +62,10 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
     }
   },
 
-  getFlashcardsForReview: async (token) => {
+  getFlashcardsForReview: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await flashcardService.getFlashcardsForReview(token);
+      const response = await flashcardService.getFlashcardsForReview();
       set({ flashcards: response.data });
     } catch (error) {
       set({
@@ -81,35 +79,46 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
     }
   },
 
-  updateFlashcardReview: async (id, difficulty, token) => {
+  updateFlashcardReview: async (id, difficulty) => {
     try {
       set({ isLoading: true, error: null });
-      await flashcardService.updateFlashcardReview(id, difficulty, token);
-      // Refresh flashcards after update
-      const response = await flashcardService.getAllFlashcards(token);
-      set({ flashcards: response.data });
+      const response = await flashcardService.updateFlashcardReview(
+        id,
+        difficulty
+      );
+      set((state) => ({
+        flashcards: state.flashcards.map((flashcard) =>
+          flashcard.id === id ? response.data : flashcard
+        ),
+        currentFlashcard:
+          state.currentFlashcard?.id === id ? response.data : state.currentFlashcard,
+      }));
     } catch (error) {
       set({
         error:
-          error instanceof Error ? error.message : "Error updating flashcard",
+          error instanceof Error
+            ? error.message
+            : "Error updating flashcard review",
       });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  archiveFlashcard: async (id, token) => {
+  archiveFlashcard: async (id) => {
     try {
       set({ isLoading: true, error: null });
-      await flashcardService.archiveFlashcard(id, token);
-      // Update flashcards list after archiving
+      await flashcardService.archiveFlashcard(id);
       set((state) => ({
         flashcards: state.flashcards.filter((f) => f.id !== id),
+        currentFlashcard: state.currentFlashcard?.id === id ? null : state.currentFlashcard,
       }));
     } catch (error) {
       set({
         error:
-          error instanceof Error ? error.message : "Error archiving flashcard",
+          error instanceof Error
+            ? error.message
+            : "Error archiving flashcard",
       });
     } finally {
       set({ isLoading: false });

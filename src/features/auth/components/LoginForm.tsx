@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth, useAuthActions } from "../../../hook/userAuth";
+import { useAuth, useAuthActions } from "../../../hook/useAuth";
 import { useEffect, useState } from "react";
 import { userLoginDTO } from "../../../types/user/userRequest";
 
@@ -16,7 +16,6 @@ function LoginForm({ setIsLoginMode }: LoginFormProps) {
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    
     if (isAuthenticated) {
       navigate("/dashboard"); // Redirigir a home después de registro exitoso
     }

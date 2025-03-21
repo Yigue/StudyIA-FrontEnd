@@ -1,5 +1,6 @@
 export interface ReviewDTO{
-  difficulty:string;
+  difficulty: number;
+  next_review: string;
 }
 
 
