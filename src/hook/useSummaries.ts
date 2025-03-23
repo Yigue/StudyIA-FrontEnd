@@ -18,7 +18,6 @@ export const useSummariesActions = () => {
     getSummariesByMaterial,
     createSummary,
     updateSummary,
-    deleteSummary,
     setCurrentSummary,
     clearError 
   } = useSummariesStore();
@@ -29,7 +28,6 @@ export const useSummariesActions = () => {
     getSummariesByMaterial,
     createSummary,
     updateSummary,
-    deleteSummary,
     setCurrentSummary,
     clearError,
   };

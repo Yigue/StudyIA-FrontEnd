@@ -1,4 +1,5 @@
-import { FlashcardStats } from '../types/flashcards.types';
+import { FlashcardStats } from "../types/flashcards.types";
+
 
 interface StatsPanelProps {
   stats: FlashcardStats;

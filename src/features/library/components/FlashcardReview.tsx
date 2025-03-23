@@ -1,89 +1,193 @@
-import { LayoutGrid, Clock, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { LayoutGrid, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Flashcard } from '../../../types';
 
-
 interface FlashcardReviewProps {
-  flashcard: Flashcard;
-  totalFlashcards: number;
-  currentIndex: number;
-  showAnswer: boolean;
-  onToggleAnswer: () => void;
-  onUpdateDifficulty: (difficulty: number) => void;
+  flashcard?: Flashcard | null;
+  flashcards?: Flashcard[];
+  totalFlashcards?: number;
+  currentIndex?: number;
+  showAnswer?: boolean;
+  onToggleAnswer?: () => void;
+  onUpdateDifficulty?: (difficulty: number) => void;
+  onDifficultyChange?: (flashcardId: string, difficulty: number) => Promise<void>;
 }
 
-export const FlashcardReview = ({
-  flashcard,
-  totalFlashcards,
-  currentIndex,
-  showAnswer,
+export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
+  flashcard: propFlashcard,
+  flashcards = [],
+  totalFlashcards: propTotalFlashcards,
+  currentIndex: propCurrentIndex = 0,
+  showAnswer: propShowAnswer,
   onToggleAnswer,
   onUpdateDifficulty,
-}: FlashcardReviewProps) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-indigo-50 rounded-lg">
-          <LayoutGrid className="w-6 h-6 text-indigo-600" />
+  onDifficultyChange,
+}) => {
+  // Estados locales para modo de array de flashcards
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  
+  // Determinar el modo: flashcard individual o array
+  const isArrayMode = flashcards.length > 0;
+  
+  // Obtener flashcard actual según el modo
+  const flashcard = isArrayMode 
+    ? flashcards[currentIndex] 
+    : propFlashcard;
+    
+  // Total de flashcards
+  const totalFlashcards = isArrayMode 
+    ? flashcards.length 
+    : propTotalFlashcards || 1;
+    
+  // Usar estado local o props para showAnswer
+  const isShowingAnswer = isArrayMode 
+    ? showAnswer 
+    : propShowAnswer;
+    
+  // Manejadores de eventos
+  const handleToggleAnswer = () => {
+    if (isArrayMode) {
+      setShowAnswer(true);
+    } else if (onToggleAnswer) {
+      onToggleAnswer();
+    }
+  };
+  
+  const handleUpdateDifficulty = (difficulty: number) => {
+    if (isArrayMode && flashcard && onDifficultyChange) {
+      onDifficultyChange(flashcard.id, difficulty)
+        .then(() => {
+          if (currentIndex < flashcards.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setShowAnswer(false);
+          }
+        })
+        .catch(err => console.error('Error al actualizar flashcard:', err));
+    } else if (onUpdateDifficulty) {
+      onUpdateDifficulty(difficulty);
+    }
+  };
+  
+  const navigateToNextCard = () => {
+    if (currentIndex < totalFlashcards - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setShowAnswer(false);
+    }
+  };
+  
+  const navigateToPrevCard = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+      setShowAnswer(false);
+    }
+  };
+  
+  if (!flashcard) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+        <p className="text-gray-600">No hay flashcards disponibles para revisar</p>
+      </div>
+    );
+  }
+  
+  // Índice actual para mostrar
+  const displayIndex = isArrayMode ? currentIndex : propCurrentIndex;
+  
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 rounded-lg">
+            <LayoutGrid className="w-6 h-6 text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-800">
+            Flashcards ({displayIndex + 1} de {totalFlashcards})
+          </h3>
         </div>
-        <h3 className="text-lg font-semibold text-gray-800">
-          Flashcards ({currentIndex + 1} de {totalFlashcards})
-        </h3>
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-gray-500" />
+          <span className="text-sm text-gray-500">
+            Próxima revisión: {new Date(flashcard.next_review).toLocaleDateString()}
+          </span>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Clock className="w-4 h-4 text-gray-500" />
-        <span className="text-sm text-gray-500">
-          Próxima revisión: {new Date(flashcard.next_review).toLocaleDateString()}
-        </span>
-      </div>
-    </div>
 
-    <div className="bg-gray-50 p-6 rounded-lg mb-4">
-      <p className="font-medium text-gray-800 mb-4">{flashcard.question}</p>
-      {showAnswer ? (
-        <p className="text-gray-600">{flashcard.answer}</p>
-      ) : (
-        <button
-          onClick={onToggleAnswer}
-          className="text-indigo-600 hover:text-indigo-700 font-medium"
-        >
-          Mostrar respuesta
-        </button>
+      {isArrayMode && (
+        <div className="flex justify-between mb-4">
+          <button 
+            onClick={navigateToPrevCard}
+            disabled={currentIndex === 0}
+            className={`p-2 rounded-lg ${
+              currentIndex === 0 
+                ? 'text-gray-300 cursor-not-allowed' 
+                : 'text-indigo-600 hover:bg-indigo-50'
+            }`}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={navigateToNextCard}
+            disabled={currentIndex === totalFlashcards - 1}
+            className={`p-2 rounded-lg ${
+              currentIndex === totalFlashcards - 1 
+                ? 'text-gray-300 cursor-not-allowed' 
+                : 'text-indigo-600 hover:bg-indigo-50'
+            }`}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      <div className="bg-gray-50 p-6 rounded-lg mb-4">
+        <p className="font-medium text-gray-800 mb-4">{flashcard.question}</p>
+        {isShowingAnswer ? (
+          <p className="text-gray-600">{flashcard.answer}</p>
+        ) : (
+          <button
+            onClick={handleToggleAnswer}
+            className="text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            Mostrar respuesta
+          </button>
+        )}
+      </div>
+
+      {isShowingAnswer && (
+        <div className="flex justify-center gap-4">
+          {[1, 2, 3, 4, 5].map((difficulty) => (
+            <button
+              key={difficulty}
+              onClick={() => handleUpdateDifficulty(difficulty)}
+              className="flex flex-col items-center gap-1"
+            >
+              <div className={`p-3 rounded-lg transition-colors ${
+                difficulty <= 2
+                  ? 'bg-green-100 hover:bg-green-200'
+                  : difficulty === 3
+                  ? 'bg-yellow-100 hover:bg-yellow-200'
+                  : 'bg-red-100 hover:bg-red-200'
+              }`}>
+                <Star className={`w-6 h-6 ${
+                  difficulty <= 2
+                    ? 'text-green-600'
+                    : difficulty === 3
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
+                }`} />
+              </div>
+              <span className="text-sm text-gray-600">
+                {difficulty === 1 ? 'Muy Fácil' :
+                 difficulty === 2 ? 'Fácil' :
+                 difficulty === 3 ? 'Normal' :
+                 difficulty === 4 ? 'Difícil' :
+                 'Muy Difícil'}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
-
-    {showAnswer && (
-      <div className="flex justify-center gap-4">
-        {[1, 2, 3, 4, 5].map((difficulty) => (
-          <button
-            key={difficulty}
-            onClick={() => onUpdateDifficulty(difficulty)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className={`p-3 rounded-lg transition-colors ${
-              difficulty <= 2
-                ? 'bg-green-100 hover:bg-green-200'
-                : difficulty === 3
-                ? 'bg-yellow-100 hover:bg-yellow-200'
-                : 'bg-red-100 hover:bg-red-200'
-            }`}>
-              <Star className={`w-6 h-6 ${
-                difficulty <= 2
-                  ? 'text-green-600'
-                  : difficulty === 3
-                  ? 'text-yellow-600'
-                  : 'text-red-600'
-              }`} />
-            </div>
-            <span className="text-sm text-gray-600">
-              {difficulty === 1 ? 'Muy Fácil' :
-               difficulty === 2 ? 'Fácil' :
-               difficulty === 3 ? 'Normal' :
-               difficulty === 4 ? 'Difícil' :
-               'Muy Difícil'}
-            </span>
-          </button>
-        ))}
-      </div>
-    )}
-  </div>
-);
+  );
+};

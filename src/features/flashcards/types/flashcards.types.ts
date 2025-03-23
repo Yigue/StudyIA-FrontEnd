@@ -8,19 +8,9 @@ export interface FlashcardStats {
   total: number;
   filtered: number;
   current: number;
-  total: number;
 }
 
-export interface ReviewFlashcard {
+export interface Tag {
   id: string;
-  question: string;
-  answer: string;
-  material: {
-    title: string;
-    subject: {
-      name: string;
-    }
-  };
-  next_review: string;
-  difficulty: number;
-}
+  name: string;
+} 

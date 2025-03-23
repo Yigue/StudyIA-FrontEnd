@@ -1,32 +1,44 @@
-import { FolderPlus } from 'lucide-react';
+import { FolderPlus, Check, Plus } from 'lucide-react';
 import { Subject } from '../types/study.types';
+import { Tag } from '../../../types';
+import { useState } from 'react';
 
 interface SubjectSelectorProps {
   subjects: Subject[];
-  selectedSubject: string;
-  showNewSubjectInput: boolean;
-  newSubjectName: string;
-  onSubjectSelect: (id: string) => void;
-  onNewSubjectNameChange: (name: string) => void;
-  onToggleNewSubject: () => void;
-  onCreateNewSubject: () => void;
+  selectedSubject: Tag | null;
+  onSubjectSelect: (subject: Tag | null) => void;
 }
 
-export const SubjectSelector = ({
+const SubjectSelectorComponent: React.FC<SubjectSelectorProps> = ({
   subjects,
   selectedSubject,
-  showNewSubjectInput,
-  newSubjectName,
-  onSubjectSelect,
-  onNewSubjectNameChange,
-  onToggleNewSubject,
-  onCreateNewSubject
-}: SubjectSelectorProps) => (
+  onSubjectSelect
+}) => {
+  const [showNewSubjectInput, setShowNewSubjectInput] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState("");
+
+  const handleToggleNewSubject = () => {
+    setShowNewSubjectInput(!showNewSubjectInput);
+  };
+
+  const handleCreateNewSubject = async () => {
+    // La implementación de creación de etiquetas se manejará en el componente padre
+    if (newSubjectName.trim()) {
+      // Aquí se debería implementar la lógica para crear la etiqueta
+      console.log("Crear nueva materia:", newSubjectName);
+      
+      // Limpiamos el estado después de crear
+      setNewSubjectName("");
+      setShowNewSubjectInput(false);
+    }
+  };
+
+  return (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-gray-800">Seleccionar Materia</h3>
       <button
-        onClick={onToggleNewSubject}
+          onClick={handleToggleNewSubject}
         className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
       >
         <FolderPlus className="w-5 h-5" />
@@ -39,30 +51,61 @@ export const SubjectSelector = ({
         <input
           type="text"
           value={newSubjectName}
-          onChange={(e) => onNewSubjectNameChange(e.target.value)}
+            onChange={(e) => setNewSubjectName(e.target.value)}
           placeholder="Nombre de la materia"
           className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
         <button
-          onClick={onCreateNewSubject}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            onClick={handleCreateNewSubject}
+            disabled={!newSubjectName.trim()}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              newSubjectName.trim() 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
         >
           Agregar
         </button>
       </div>
     ) : (
-      <select
-        value={selectedSubject}
-        onChange={(e) => onSubjectSelect(e.target.value)}
-        className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-      >
-        <option value="">Selecciona una materia</option>
-        {subjects.map((subject) => (
-          <option key={subject.id} value={subject.id}>
-            {subject.name}
-          </option>
-        ))}
-      </select>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {subjects.map((subject) => (
+            <button
+              key={subject.id}
+              onClick={() => onSubjectSelect({ 
+                id: subject.id, 
+                name: subject.name, 
+                color: "#4f46e5", 
+                user_id: "",
+                created_at: new Date(),
+                count: 0
+              })}
+              className={`p-3 rounded-lg border text-left transition-all ${
+                selectedSubject?.id === subject.id
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50/50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {selectedSubject?.id === subject.id && (
+                  <Check className="w-4 h-4 text-indigo-600" />
+                )}
+                <span>{subject.name}</span>
+              </div>
+            </button>
+          ))}
+          
+          <button
+            onClick={handleToggleNewSubject}
+            className="p-3 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Agregar materia
+          </button>
+        </div>
     )}
   </div>
 );
+};
+
+export default SubjectSelectorComponent;

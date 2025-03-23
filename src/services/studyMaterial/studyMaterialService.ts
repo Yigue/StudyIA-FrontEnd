@@ -1,16 +1,11 @@
-
 import { StudyMaterial } from '../../types';
 import { StudyMaterialDTO } from '../../types/studyMaterial/studyMaterialRequest';
 import { httpClient } from '../api/httpClient';
 
 export async function getAllStudyMaterials() {
-  
-  return  httpClient<StudyMaterial[]>('/material', {
-    method: 'GET',
-
+  return httpClient<StudyMaterial[]>('/material', {
+    method: 'GET'
   });
-
-  
 }
 
 export async function getMaterialById(id: string) {
@@ -26,11 +21,10 @@ export async function uploadMaterial(materialData: StudyMaterialDTO) {
   }
   formData.append('data', JSON.stringify(materialData));
 
-  return httpClient<StudyMaterial,FormData>('/material/upload', {
+  return httpClient<StudyMaterial, FormData>('/material/upload', {
     method: 'POST',
     data: formData
-  }
-);
+  });
 }
 
 export async function uploadAndProcess(materialData: StudyMaterialDTO) {
@@ -40,24 +34,21 @@ export async function uploadAndProcess(materialData: StudyMaterialDTO) {
   }
   formData.append('data', JSON.stringify(materialData));
 
-  return httpClient<StudyMaterial,FormData>('/material/uploadAndProcess', {
+  return httpClient<StudyMaterial, FormData>('/material/uploadAndProcess', {
     method: 'POST',
     data: formData
   });
 }
-export async function generateSummary(id:string) {
- 
 
+export async function generateSummary(id: string) {
   return httpClient(`/material/GenerateSummary/${id}`, {
-    method: 'POST',
+    method: 'POST'
   });
 }
 
-export async function generateFlashcard(id:string) {
- 
-
+export async function generateFlashcard(id: string) {
   return httpClient(`/material/GenerateFlashcard/${id}`, {
-    method: 'POST',
+    method: 'POST'
   });
 }
 

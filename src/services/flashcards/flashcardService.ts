@@ -43,4 +43,23 @@ export async function archiveFlashcard(id: string) {
     method: 'PUT'
   });
 }
-// falta un delete, update, create
+
+export async function createFlashcard(flashcard: Partial<Flashcard>) {
+  return httpClient<Flashcard, Partial<Flashcard>>('/flashcard', {
+    method: 'POST',
+    data: flashcard
+  });
+}
+
+export async function updateFlashcard(id: string, flashcard: Partial<Flashcard>) {
+  return httpClient<Flashcard, Partial<Flashcard>>(`/flashcard/${id}`, {
+    method: 'PUT',
+    data: flashcard
+  });
+}
+
+export async function deleteFlashcard(id: string) {
+  return httpClient<void>(`/flashcard/${id}`, {
+    method: 'DELETE'
+  });
+}

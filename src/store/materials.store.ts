@@ -9,13 +9,15 @@ interface MaterialsStore {
   isLoading: boolean;
   error: string | null;
   uploadProgress: number;
+  generatingContent: boolean;
 
   // Actions
   getAllMaterials: () => Promise<void>;
   getMaterialById: (id: string) => Promise<void>;
-  uploadMaterial: (material: StudyMaterialDTO) => Promise<void>;
-  uploadAndProcess: (material: StudyMaterialDTO) => Promise<void>;
-  deleteMaterial: (id: string) => Promise<void>;
+  uploadMaterial: (material: StudyMaterialDTO) => Promise<StudyMaterial | null>;
+  uploadAndProcess: (material: StudyMaterialDTO) => Promise<StudyMaterial | null>;
+  generateSummary: (id: string) => Promise<void>;
+  generateFlashcard: (id: string) => Promise<void>;
   setCurrentMaterial: (material: StudyMaterial | null) => void;
   clearError: () => void;
 }
@@ -26,6 +28,7 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
   isLoading: false,
   error: null,
   uploadProgress: 0,
+  generatingContent: false,
 
   getAllMaterials: async () => {
     try {
@@ -33,7 +36,7 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
       const response = await materialService.getAllStudyMaterials();
       set({ materials: response.data });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error loading materials' });
+      set({ error: error instanceof Error ? error.message : 'Error al cargar los materiales' });
     } finally {
       set({ isLoading: false });
     }
@@ -45,7 +48,7 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
       const response = await materialService.getMaterialById(id);
       set({ currentMaterial: response.data });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error loading material' });
+      set({ error: error instanceof Error ? error.message : 'Error al cargar el material' });
     } finally {
       set({ isLoading: false });
     }
@@ -57,10 +60,13 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
       const response = await materialService.uploadMaterial(material);
       set(state => ({
         materials: [...state.materials, response.data],
+        currentMaterial: response.data,
         uploadProgress: 100
       }));
+      return response.data;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error uploading material' });
+      set({ error: error instanceof Error ? error.message : 'Error al subir el material' });
+      return null;
     } finally {
       set({ isLoading: false });
     }
@@ -72,27 +78,47 @@ export const useMaterialsStore = create<MaterialsStore>((set) => ({
       const response = await materialService.uploadAndProcess(material);
       set(state => ({
         materials: [...state.materials, response.data],
+        currentMaterial: response.data,
         uploadProgress: 100
       }));
+      return response.data;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error processing material' });
+      set({ error: error instanceof Error ? error.message : 'Error al procesar el material' });
+      return null;
     } finally {
       set({ isLoading: false });
     }
   },
 
-  deleteMaterial: async (id) => {
+  generateSummary: async (id) => {
     try {
-      set({ isLoading: true, error: null });
-      await materialService.deleteMaterial(id);
-      set(state => ({
-        materials: state.materials.filter(m => m.id !== id),
-        currentMaterial: state.currentMaterial?.id === id ? null : state.currentMaterial
-      }));
+      set({ generatingContent: true, error: null });
+      await materialService.generateSummary(id);
+      // Actualizar el material después de generar el resumen
+      const response = await materialService.getMaterialById(id);
+      set({ 
+        currentMaterial: response.data,
+      });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error deleting material' });
+      set({ error: error instanceof Error ? error.message : 'Error al generar el resumen' });
     } finally {
-      set({ isLoading: false });
+      set({ generatingContent: false });
+    }
+  },
+
+  generateFlashcard: async (id) => {
+    try {
+      set({ generatingContent: true, error: null });
+      await materialService.generateFlashcard(id);
+      // Actualizar el material después de generar las flashcards
+      const response = await materialService.getMaterialById(id);
+      set({ 
+        currentMaterial: response.data,
+      });
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Error al generar las flashcards' });
+    } finally {
+      set({ generatingContent: false });
     }
   },
 

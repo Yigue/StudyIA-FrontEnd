@@ -6,13 +6,14 @@ import { AuthInitializer } from "./components/auth/AuthInitializer";
 
 import DashboardPage from "./features/dashboard/DashboardPage";
 import StudyAreaPage from "./features/study/StudyAreaPage";
-import LibraryPage from "./features/library/LibraryPage";
 import FlashcardsReviewPage from "./features/flashcards/FlashcardsReviewPage";
+import FlashcardsExplorerPage from "./features/flashcards/FlashcardsExplorerPage";
 import AuthPage from "./features/auth/AuthPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import MainLayout from "./components/layouts/MainLayout";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { useAuth } from "./hook/useAuth";
+import { LibraryPage } from "./features/library/LibraryPage";
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -51,6 +52,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <FlashcardsReviewPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="flashcards/explorador"
+                  element={
+                    <ProtectedRoute>
+                      <FlashcardsExplorerPage />
                     </ProtectedRoute>
                   }
                 />

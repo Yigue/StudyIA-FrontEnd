@@ -13,10 +13,14 @@ interface FlashcardsStore {
   getAllFlashcards: () => Promise<void>;
   getFlashcardsByMaterial: (materialId: string) => Promise<void>;
   getFlashcardsForReview: () => Promise<void>;
+  getFlashcardsForReviewMaterial: (materialId: string) => Promise<void>;
   updateFlashcardReview: (
     id: string,
     difficulty: ReviewDTO
   ) => Promise<void>;
+  createFlashcard: (flashcard: Partial<Flashcard>) => Promise<void>;
+  updateFlashcard: (id: string, flashcard: Partial<Flashcard>) => Promise<void>;
+  deleteFlashcard: (id: string) => Promise<void>;
   archiveFlashcard: (id: string) => Promise<void>;
   setCurrentFlashcard: (flashcard: Flashcard | null) => void;
   clearError: () => void;
@@ -36,7 +40,7 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
     } catch (error) {
       set({
         error:
-          error instanceof Error ? error.message : "Error loading flashcards",
+          error instanceof Error ? error.message : "Error al cargar las flashcards",
       });
     } finally {
       set({ isLoading: false });
@@ -55,7 +59,7 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
         error:
           error instanceof Error
             ? error.message
-            : "Error loading material flashcards",
+            : "Error al cargar las flashcards del material",
       });
     } finally {
       set({ isLoading: false });
@@ -72,7 +76,24 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
         error:
           error instanceof Error
             ? error.message
-            : "Error loading review flashcards",
+            : "Error al cargar las flashcards para repasar",
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  getFlashcardsForReviewMaterial: async (materialId) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await flashcardService.getFlashcardsForReviewMaterial(materialId);
+      set({ flashcards: response.data });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error al cargar las flashcards para repasar del material",
       });
     } finally {
       set({ isLoading: false });
@@ -98,7 +119,69 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
         error:
           error instanceof Error
             ? error.message
-            : "Error updating flashcard review",
+            : "Error al actualizar la revisión de la flashcard",
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  createFlashcard: async (flashcard) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await flashcardService.createFlashcard(flashcard);
+      set((state) => ({
+        flashcards: [...state.flashcards, response.data],
+      }));
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error al crear la flashcard",
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  updateFlashcard: async (id, flashcard) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await flashcardService.updateFlashcard(id, flashcard);
+      set((state) => ({
+        flashcards: state.flashcards.map((f) =>
+          f.id === id ? response.data : f
+        ),
+        currentFlashcard:
+          state.currentFlashcard?.id === id ? response.data : state.currentFlashcard,
+      }));
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error al actualizar la flashcard",
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  deleteFlashcard: async (id) => {
+    try {
+      set({ isLoading: true, error: null });
+      await flashcardService.deleteFlashcard(id);
+      set((state) => ({
+        flashcards: state.flashcards.filter((f) => f.id !== id),
+        currentFlashcard: state.currentFlashcard?.id === id ? null : state.currentFlashcard,
+      }));
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error al eliminar la flashcard",
       });
     } finally {
       set({ isLoading: false });
@@ -118,7 +201,7 @@ export const useFlashcardsStore = create<FlashcardsStore>((set) => ({
         error:
           error instanceof Error
             ? error.message
-            : "Error archiving flashcard",
+            : "Error al archivar la flashcard",
       });
     } finally {
       set({ isLoading: false });

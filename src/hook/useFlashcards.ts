@@ -1,4 +1,5 @@
 import { useFlashcardsStore } from "../store/flashcards.store";
+import { useMemo } from "react";
 
 export const useFlashcards = () => {
   const { flashcards, currentFlashcard, isLoading, error } = useFlashcardsStore();
@@ -16,7 +17,11 @@ export const useFlashcardsActions = () => {
     getAllFlashcards, 
     getFlashcardsByMaterial, 
     getFlashcardsForReview,
+    getFlashcardsForReviewMaterial,
     updateFlashcardReview,
+    createFlashcard,
+    updateFlashcard,
+    deleteFlashcard,
     archiveFlashcard,
     setCurrentFlashcard,
     clearError 
@@ -26,14 +31,23 @@ export const useFlashcardsActions = () => {
     getAllFlashcards,
     getFlashcardsByMaterial,
     getFlashcardsForReview,
+    getFlashcardsForReviewMaterial,
     updateFlashcardReview,
+    createFlashcard,
+    updateFlashcard,
+    deleteFlashcard,
     archiveFlashcard,
     setCurrentFlashcard,
     clearError,
   };
 };
 
-export const useFlashcardsStatus = () => useFlashcardsStore(state => ({
-  isLoading: state.isLoading,
-  currentFlashcard: state.currentFlashcard
-}));
+export const useFlashcardsStatus = () => {
+  const isLoading = useFlashcardsStore(state => state.isLoading);
+  const currentFlashcard = useFlashcardsStore(state => state.currentFlashcard);
+  
+  return useMemo(() => ({
+    isLoading,
+    currentFlashcard
+  }), [isLoading, currentFlashcard]);
+};

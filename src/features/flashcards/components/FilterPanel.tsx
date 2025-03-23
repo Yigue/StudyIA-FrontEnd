@@ -1,9 +1,10 @@
 import { Filter } from 'lucide-react';
 import { FlashcardFilters } from '../types/flashcards.types';
 
+
 interface FilterPanelProps {
   filters: FlashcardFilters;
-  onFilterChange: (key: keyof FlashcardFilters, value: string) => void;
+  onFilterChange: (key: string, value: string) => void;
   subjects: Array<{ id: string; name: string }>;
 }
 

@@ -1,7 +1,15 @@
 import { useMaterialsStore } from "../store/materials.store";
+import { useMemo } from "react";
 
 export const useMaterials = () => {
-  const { materials, currentMaterial, isLoading, error, uploadProgress } = useMaterialsStore();
+  const { 
+    materials, 
+    currentMaterial, 
+    isLoading, 
+    error, 
+    uploadProgress,
+    generatingContent 
+  } = useMaterialsStore();
   
   return {
     materials,
@@ -9,6 +17,7 @@ export const useMaterials = () => {
     isLoading,
     error,
     uploadProgress,
+    generatingContent,
   };
 };
 
@@ -18,7 +27,8 @@ export const useMaterialsActions = () => {
     getMaterialById,
     uploadMaterial,
     uploadAndProcess,
-    deleteMaterial,
+    generateSummary,
+    generateFlashcard,
     setCurrentMaterial,
     clearError 
   } = useMaterialsStore();
@@ -28,13 +38,21 @@ export const useMaterialsActions = () => {
     getMaterialById,
     uploadMaterial,
     uploadAndProcess,
-    deleteMaterial,
+    generateSummary,
+    generateFlashcard,
     setCurrentMaterial,
     clearError,
   };
 };
 
-export const useMaterialsStatus = () => useMaterialsStore(state => ({
-  isLoading: state.isLoading,
-  uploadProgress: state.uploadProgress
-}));
+export const useMaterialsStatus = () => {
+  const isLoading = useMaterialsStore(state => state.isLoading);
+  const uploadProgress = useMaterialsStore(state => state.uploadProgress);
+  const generatingContent = useMaterialsStore(state => state.generatingContent);
+  
+  return useMemo(() => ({
+    isLoading,
+    uploadProgress,
+    generatingContent
+  }), [isLoading, uploadProgress, generatingContent]);
+};

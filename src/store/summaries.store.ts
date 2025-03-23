@@ -10,12 +10,11 @@ interface SummariesStore {
   error: string | null;
 
   // Actions
-  getAllSummaries: (token: string) => Promise<void>;
-  getSummaryById: (id: string, token: string) => Promise<void>;
-  getSummariesByMaterial: (materialId: string, token: string) => Promise<void>;
-  createSummary: (summary: summaryCreatedDTO, token: string) => Promise<void>;
-  updateSummary: (id: string, summary: summaryCreatedDTO, token: string) => Promise<void>;
-  deleteSummary: (id: string, token: string) => Promise<void>;
+  getAllSummaries: () => Promise<void>;
+  getSummaryById: (id: string) => Promise<void>;
+  getSummariesByMaterial: (materialId: string) => Promise<void>;
+  createSummary: (summary: summaryCreatedDTO) => Promise<void>;
+  updateSummary: (id: string, summary: summaryCreatedDTO) => Promise<void>;
   setCurrentSummary: (summary: Summary | null) => void;
   clearError: () => void;
 }
@@ -26,81 +25,66 @@ export const useSummariesStore = create<SummariesStore>((set) => ({
   isLoading: false,
   error: null,
 
-  getAllSummaries: async (token) => {
+  getAllSummaries: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await summaryService.getAllSummaries(token);
+      const response = await summaryService.getAllSummaries();
       set({ summaries: response.data });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error loading summaries' });
+      set({ error: error instanceof Error ? error.message : 'Error al cargar los resúmenes' });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  getSummaryById: async (id, token) => {
+  getSummaryById: async (id) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await summaryService.getSummaryById(id, token);
+      const response = await summaryService.getSummaryById(id);
       set({ currentSummary: response.data });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error loading summary' });
+      set({ error: error instanceof Error ? error.message : 'Error al cargar el resumen' });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  getSummariesByMaterial: async (materialId, token) => {
+  getSummariesByMaterial: async (materialId) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await summaryService.getSummariesByMaterial(materialId, token);
+      const response = await summaryService.getSummariesByMaterial(materialId);
       set({ summaries: response.data });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error loading material summaries' });
+      set({ error: error instanceof Error ? error.message : 'Error al cargar los resúmenes del material' });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  createSummary: async (summary, token) => {
+  createSummary: async (summary) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await summaryService.createSummary(summary, token);
+      const response = await summaryService.createSummary(summary);
       set(state => ({
         summaries: [...state.summaries, response.data]
       }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error creating summary' });
+      set({ error: error instanceof Error ? error.message : 'Error al crear el resumen' });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  updateSummary: async (id, summary, token) => {
+  updateSummary: async (id, summary) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await summaryService.updateSummary(id, summary, token);
+      const response = await summaryService.updateSummary(id, summary);
       set(state => ({
         summaries: state.summaries.map(s => s.id === id ? response.data : s),
         currentSummary: state.currentSummary?.id === id ? response.data : state.currentSummary
       }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error updating summary' });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  deleteSummary: async (id, token) => {
-    try {
-      set({ isLoading: true, error: null });
-      await summaryService.deleteSummary(id, token);
-      set(state => ({
-        summaries: state.summaries.filter(s => s.id !== id),
-        currentSummary: state.currentSummary?.id === id ? null : state.currentSummary
-      }));
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error deleting summary' });
+      set({ error: error instanceof Error ? error.message : 'Error al actualizar el resumen' });
     } finally {
       set({ isLoading: false });
     }

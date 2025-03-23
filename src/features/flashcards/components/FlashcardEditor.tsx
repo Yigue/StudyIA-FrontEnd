@@ -8,20 +8,20 @@ import {
   List,
   AlertCircle
 } from 'lucide-react';
-import { useStudyStore } from '../lib/store';
+import { Flashcard } from '../../../types';
 
 interface FlashcardEditorProps {
-  onSave: (flashcard: any) => void;
-  initialData?: any;
+  onSave: (flashcard: Flashcard) => void;
+  onCancel?: () => void;
+  initialData?: Flashcard | null;
 }
 
-const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, initialData }) => {
+const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, onCancel, initialData }) => {
   const [formData, setFormData] = useState({
     question: initialData?.question || '',
     answer: initialData?.answer || '',
-    tags: initialData?.tags || [],
-    difficulty: initialData?.difficulty || 3,
-    subject: initialData?.subject || '',
+    difficulty: initialData?.difficulty || 'normal',
+    material_id: initialData?.material_id || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,9 +35,6 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, initialData }
     if (!formData.answer.trim()) {
       newErrors.answer = 'La respuesta es obligatoria';
     }
-    if (!formData.subject) {
-      newErrors.subject = 'Selecciona una materia';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -47,11 +44,16 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, initialData }
     e.preventDefault();
     
     if (validateForm()) {
-      onSave({
+      const flashcardData: Partial<Flashcard> = {
+        ...initialData,
         ...formData,
-        created_at: new Date().toISOString(),
-        next_review: new Date().toISOString(),
-      });
+        // Estas propiedades se establecerán en el servidor
+        active: true,
+        // Se añade el ID solo si estamos editando
+        ...(initialData?.id ? { id: initialData.id } : {})
+      };
+      
+      onSave(flashcardData as Flashcard);
     }
   };
 
@@ -128,95 +130,33 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, initialData }
           )}
         </div>
 
-        {/* Subject and Difficulty */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Materia
-            </label>
-            <select
-              value={formData.subject}
-              onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-              className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                errors.subject ? 'border-red-300' : 'border-gray-200'
-              }`}
-            >
-              <option value="">Selecciona una materia</option>
-              <option value="matematicas">Matemáticas</option>
-              <option value="historia">Historia</option>
-              <option value="ciencias">Ciencias</option>
-              <option value="literatura">Literatura</option>
-            </select>
-            {errors.subject && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.subject}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Dificultad Inicial
-            </label>
-            <select
-              value={formData.difficulty}
-              onChange={(e) => setFormData(prev => ({ ...prev, difficulty: Number(e.target.value) }))}
-              className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            >
-              <option value="1">Muy Fácil</option>
-              <option value="2">Fácil</option>
-              <option value="3">Normal</option>
-              <option value="4">Difícil</option>
-              <option value="5">Muy Difícil</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Tags */}
+        {/* Difficulty */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Etiquetas
+            Dificultad Inicial
           </label>
-          <div className="flex flex-wrap gap-2 p-2 border border-gray-200 rounded-lg">
-            {formData.tags.map((tag: string, index: number) => (
-              <span
-                key={index}
-                className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm flex items-center gap-1"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({
-                    ...prev,
-                    tags: prev.tags.filter((_, i) => i !== index)
-                  }))}
-                  className="hover:text-indigo-900"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              type="text"
-              placeholder="Agregar etiqueta..."
-              className="flex-1 min-w-[100px] border-none focus:ring-0 text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  e.preventDefault();
-                  setFormData(prev => ({
-                    ...prev,
-                    tags: [...prev.tags, e.currentTarget.value.trim()]
-                  }));
-                  e.currentTarget.value = '';
-                }
-              }}
-            />
-          </div>
+          <select
+            value={formData.difficulty}
+            onChange={(e) => setFormData(prev => ({ ...prev, difficulty: e.target.value }))}
+            className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            <option value="easy">Fácil</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Difícil</option>
+          </select>
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+          )}
           <button
             type="submit"
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
