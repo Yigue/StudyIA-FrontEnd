@@ -1,41 +1,49 @@
-import { Summary } from '../../types';
-import { summaryCreatedDTO } from '../../types/summary/summaryRequest';
+import { Params } from '../../types';
+import { Summary } from '../../types/summary/summary';
+import { SummaryCreateDTO, SummaryUpdateDTO } from '../../types/summary/summaryRequest';
 import { httpClient } from '../api/httpClient';
 
-export async function getAllSummaries() {
-  return httpClient<Summary[]>('/summary', {
-    method: 'GET'
+// Obtener todos los resúmenes con paginación
+export async function getAllSummaries(params?: Params) {
+  return httpClient<Summary>('/summaries', {
+    method: 'GET',
+    params
   });
 }
 
+// Obtener un resumen específico
 export async function getSummaryById(id: string) {
-  return httpClient<Summary>(`/summary/${id}`, {
+  return httpClient<Summary>(`/summaries/${id}`, {
     method: 'GET'
   });
 }
 
+// Obtener resúmenes por material
 export async function getSummariesByMaterial(materialId: string) {
-  return httpClient<Summary[]>(`/summary/forMaterial/${materialId}`, {
+  return httpClient<Summary[]>(`/summaries/material/${materialId}`, {
     method: 'GET'
   });
 }
 
-export async function createSummary(summaryData: summaryCreatedDTO) {
-  return httpClient<Summary, summaryCreatedDTO>('/summary', {
+// Crear un resumen
+export async function createSummary(summaryData: SummaryCreateDTO) {
+  return httpClient<Summary, SummaryCreateDTO>('/summaries', {
     method: 'POST',
     data: summaryData
   });
 }
 
-export async function updateSummary(id: string, summaryData: summaryCreatedDTO) {
-  return httpClient<Summary, summaryCreatedDTO>(`/summary/${id}`, {
+// Actualizar un resumen
+export async function updateSummary(id: string, summaryData: SummaryUpdateDTO) {
+  return httpClient<Summary, SummaryUpdateDTO>(`/summaries/${id}`, {
     method: 'PUT',
     data: summaryData
   });
 }
-// Falta delete
-// export async function deleteSummary(id: string) {
-//   return httpClient<void>(`/summary/${id}`, {
-//     method: 'DELETE'
-//   });
-// }
+
+// Eliminar un resumen
+export async function deleteSummary(id: string) {
+  return httpClient<void>(`/summaries/${id}`, {
+    method: 'DELETE'
+  });
+}

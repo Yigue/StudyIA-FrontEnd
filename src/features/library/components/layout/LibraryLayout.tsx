@@ -3,6 +3,7 @@ import { Book, Search, Filter, RefreshCw } from 'lucide-react';
 
 interface LibraryLayoutProps {
   isLoading?: boolean;
+  error?: string | null;
   title: string;
   searchTerm?: string;
   onSearchChange?: (term: string) => void;
@@ -14,6 +15,7 @@ interface LibraryLayoutProps {
 
 const LibraryLayout: React.FC<LibraryLayoutProps> = ({
   isLoading = false,
+  error = null,
   title,
   searchTerm = '',
   onSearchChange,
@@ -76,6 +78,12 @@ const LibraryLayout: React.FC<LibraryLayoutProps> = ({
           )}
         </div>
       </div>
+      
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-4 xl:col-span-3">

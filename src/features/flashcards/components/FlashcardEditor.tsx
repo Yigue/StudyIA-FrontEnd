@@ -66,42 +66,42 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, onCancel, ini
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6">
+    <div className="card">
+      <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">
         {initialData ? 'Editar Flashcard' : 'Crear Nueva Flashcard'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Toolbar */}
-        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
           {toolbarButtons.map((button, index) => (
             <button
               key={index}
               type="button"
-              className="p-2 hover:bg-gray-200 rounded"
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
               title={button.label}
             >
-              <button.icon className="w-5 h-5 text-gray-600" />
+              <button.icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           ))}
         </div>
 
         {/* Question */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Pregunta
           </label>
           <textarea
             value={formData.question}
             onChange={(e) => setFormData(prev => ({ ...prev, question: e.target.value }))}
-            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-              errors.question ? 'border-red-300' : 'border-gray-200'
+            className={`input-base w-full ${
+              errors.question ? 'border-red-300 dark:border-red-500' : ''
             }`}
             rows={3}
             placeholder="Escribe la pregunta..."
           />
           {errors.question && (
-            <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
               {errors.question}
             </p>
@@ -110,20 +110,20 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, onCancel, ini
 
         {/* Answer */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Respuesta
           </label>
           <textarea
             value={formData.answer}
             onChange={(e) => setFormData(prev => ({ ...prev, answer: e.target.value }))}
-            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-              errors.answer ? 'border-red-300' : 'border-gray-200'
+            className={`input-base w-full ${
+              errors.answer ? 'border-red-300 dark:border-red-500' : ''
             }`}
             rows={5}
             placeholder="Escribe la respuesta..."
           />
           {errors.answer && (
-            <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
               {errors.answer}
             </p>
@@ -132,13 +132,13 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, onCancel, ini
 
         {/* Difficulty */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Dificultad Inicial
           </label>
           <select
             value={formData.difficulty}
             onChange={(e) => setFormData(prev => ({ ...prev, difficulty: e.target.value }))}
-            className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="input-base w-full"
           >
             <option value="easy">Fácil</option>
             <option value="normal">Normal</option>
@@ -152,14 +152,14 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({ onSave, onCancel, ini
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="btn-secondary"
             >
               Cancelar
             </button>
           )}
           <button
             type="submit"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+            className="btn-primary flex items-center gap-2"
           >
             <Save className="w-5 h-5" />
             Guardar Flashcard

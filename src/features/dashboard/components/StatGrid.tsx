@@ -12,31 +12,27 @@ const StatGrid: React.FC<StatGridProps> = ({ stats }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatsCard
         icon={BookOpen}
-        label="Materiales"
+        title="Materiales"
         value={stats.totalMaterials}
-        bgColor="bg-green-50"
-        iconColor="text-green-600"
+        color="green"
       />
       <StatsCard
         icon={Brain}
-        label="Flashcards"
+        title="Flashcards"
         value={stats.totalFlashcards}
-        bgColor="bg-blue-50"
-        iconColor="text-blue-600"
+        color="blue"
       />
       <StatsCard
         icon={Clock}
-        label="Horas de Estudio"
+        title="Horas de Estudio"
         value={stats.studyHours}
-        bgColor="bg-purple-50"
-        iconColor="text-purple-600"
+        color="purple"
       />
       <StatsCard
         icon={Trophy}
-        label="Logros"
+        title="Logros"
         value={stats.achievements}
-        bgColor="bg-yellow-50"
-        iconColor="text-yellow-600"
+        color="yellow"
       />
     </div>
   );

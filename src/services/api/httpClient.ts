@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiResponse, ApiError } from '../../types';
+import { Params } from '../../types';
+
 
 const baseURL = import.meta.env.VITE_API_BASEURL;
 
@@ -8,6 +10,8 @@ export const axiosInstance: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // No enviamos credenciales por defecto para evitar conflictos con CORS
+  withCredentials: false
 });
 
 let failedAuthAttempts = 0;
@@ -96,12 +100,14 @@ export const setAuthToken = (token: string) => {
   }
 };
 
-export async function httpClient<TResponse, TRequest = void>(
+export async function httpClient<TResponse, TRequest = null>(
   endpoint: string,
   options: {
     method?: string;
     data?: TRequest;
     headers?: Record<string, string>;
+    params?: Params;
+    withCredentials?: boolean; // Añadimos opción para configurar withCredentials por solicitud
   } = {}
 ): Promise<ApiResponse<TResponse>> {
   try {
@@ -110,6 +116,8 @@ export async function httpClient<TResponse, TRequest = void>(
       url: endpoint,
       method: options.method || 'GET',
       data: options.data,
+      withCredentials: options.withCredentials, // Usar la configuración de withCredentials si se proporciona
+      params: options.params
     };
     
     // Si hay headers personalizados, los combinamos con los existentes sin sobrescribir la autorización
@@ -123,17 +131,16 @@ export async function httpClient<TResponse, TRequest = void>(
     
     return {
       data: response.data.data,
-      error: null,
+      status: "success",
       message: response.data.message,
-      success: response.data.success,
-      status: response.status,
+      meta: response.data.meta
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const apiError: ApiError = {
         message: error.response?.data?.message || 'An unexpected error occurred',
-        code: error.response?.data?.code || 'UNKNOWN_ERROR',
-        status: error.response?.status || 500,
+        code: error.response?.data?.code || 500,
+        status: "error"
       };
       throw apiError;
     }

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
-import { useFlashcards, useFlashcardsActions } from '../../hook/useFlashcards';
+import { useFlashcards, useFlashcardsStatus } from '../../hook/useFlashcards';
 import { useTags } from '../../hook/useTags';
 import FlashcardEditor from './components/FlashcardEditor';
 import { SearchBar } from './components/SearchBar';
 import { FilterPanel } from './components/FilterPanel';
 import { StatsPanel } from './components/StatsPanel';
 import FlashcardReelSimple from './components/FlashcardReelSimple';
-import { Flashcard } from '../../types';
+import { Flashcard } from '../../types/flashcards/flashcards';
 import { FlashcardFilters, FlashcardStats } from './types/flashcards.types';
 
 interface EditorState {
@@ -27,18 +27,35 @@ const FlashcardsExplorerPage = () => {
     isOpen: false,
     initialData: null
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Obtener datos de los hooks centralizados
-  const { flashcards, isLoading } = useFlashcards();
+  const { flashcards, pagination,toggleArchiveFlashcard ,getAllFlashcards} = useFlashcards();
+  const { isLoading } = useFlashcardsStatus();
   const { tags } = useTags();
-  const { getAllFlashcards, archiveFlashcard } = useFlashcardsActions();
 
   // Cargar flashcards al montar el componente
   useEffect(() => {
-    getAllFlashcards();
-  }, [getAllFlashcards]);
+    getAllFlashcards({
+      page: currentPage,
+      limit: 10,
+      difficulty: filters.difficulty !== 'all' ? filters.difficulty as "easy" | "medium" | "hard" : undefined,
+      tags: filters.subject !== 'all' ? filters.subject : undefined,
+      archived: false
+    });
+  }, [getAllFlashcards, currentPage, filters.difficulty, filters.subject]);
 
-  // Filtrar flashcards basados en búsqueda y filtros
+  // Actualizar la página actual cuando cambia en el store
+  useEffect(() => {
+    updateStorePage(currentPage);
+  }, [currentPage, updateStorePage]);
+
+  // Manejar cambio de página
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Filtrar flashcards basados en búsqueda
   const filteredFlashcards = flashcards ? flashcards.filter(card => {
     // Filtro de búsqueda
     if (searchTerm && 
@@ -47,25 +64,15 @@ const FlashcardsExplorerPage = () => {
       return false;
     }
 
-    // Filtro de dificultad
-    if (filters.difficulty !== 'all' && card.difficulty !== filters.difficulty) {
-      return false;
-    }
-
-    // Filtro de materia
-    if (filters.subject !== 'all' && card.material_id !== filters.subject) {
-      return false;
-    }
-
     // Filtro de estado
     if (filters.status !== 'all') {
       const now = new Date();
-      const reviewDate = new Date(card.next_review);
+      const reviewDate = card.lastReviewed ? new Date(card.lastReviewed) : null;
       switch (filters.status) {
         case 'pending':
-          return reviewDate > now;
+          return reviewDate === null || (reviewDate && reviewDate > now);
         case 'due':
-          return reviewDate <= now;
+          return reviewDate !== null && reviewDate <= now;
         default:
           return true;
       }
@@ -84,6 +91,7 @@ const FlashcardsExplorerPage = () => {
   // Manejadores de eventos
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Resetear a la primera página cuando cambiamos filtros
   };
 
   const handleEditFlashcard = (flashcard: Flashcard) => {
@@ -108,7 +116,10 @@ const FlashcardsExplorerPage = () => {
       initialData: null
     });
     // Recargar flashcards para ver cambios
-    getAllFlashcards();
+    getAllFlashcards({
+      page: currentPage,
+      limit: 10
+    });
   };
 
   const handleCloseEditor = () => {
@@ -120,7 +131,7 @@ const FlashcardsExplorerPage = () => {
 
   const handleDeleteFlashcard = (flashcard: Flashcard) => {
     if (window.confirm('¿Estás seguro de que deseas archivar esta flashcard?')) {
-      archiveFlashcard(flashcard.id);
+      toggleArchiveFlashcard(flashcard.id);
     }
   };
 
@@ -153,7 +164,7 @@ const FlashcardsExplorerPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Panel lateral con búsqueda, filtros y estadísticas */}
           <div className="lg:col-span-1 space-y-4">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100">
               <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
@@ -178,11 +189,40 @@ const FlashcardsExplorerPage = () => {
                 <p className="text-gray-600">Cargando flashcards...</p>
               </div>
             ) : filteredFlashcards.length > 0 ? (
-              <FlashcardReelSimple 
-                flashcards={filteredFlashcards}
-                onEdit={handleEditFlashcard}
-                onDelete={handleDeleteFlashcard}
-              />
+              <>
+                <FlashcardReelSimple 
+                  flashcards={filteredFlashcards}
+                  onEdit={handleEditFlashcard}
+                  onDelete={handleDeleteFlashcard}
+                />
+                
+                {/* Paginación */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex justify-center">
+                    <nav className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                      >
+                        Anterior
+                      </button>
+                      
+                      <span className="px-3 py-1">
+                        Página {currentPage} de {totalPages}
+                      </span>
+                      
+                      <button 
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                      >
+                        Siguiente
+                      </button>
+                    </nav>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                 <p className="text-gray-600">

@@ -1,29 +1,73 @@
+import React from 'react';
+import { Lock, Key, Trash2 } from 'lucide-react';
 import { useAuthActions } from "../../../../hook/useAuth";
 
-export const AccountSection = () => {
-const {logout}=useAuthActions()
+export const AccountSection: React.FC = () => {
+  const {logout} = useAuthActions();
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900">Cuenta</h3>
-      <div className="grid grid-cols-1 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            type="text"
-            value="nombre de usuario"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            disabled
-          />
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+          <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div>
-          <button
-            onClick={logout}
-            className="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 focus:outline-none focus:border-red-700 focus:ring focus:ring-red-200 active:bg-red-600 transition ease-in-out duration-150"
-          >
-            Cerrar Sesión
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Seguridad de la Cuenta
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Gestiona tu contraseña y seguridad
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Contraseña Actual
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              className="input-base w-full pr-10"
+              placeholder="••••••••"
+            />
+            <Key className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Nueva Contraseña
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              className="input-base w-full pr-10"
+              placeholder="••••••••"
+            />
+            <Key className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Confirmar Nueva Contraseña
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              className="input-base w-full pr-10"
+              placeholder="••••••••"
+            />
+            <Key className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button className="btn-danger flex items-center gap-2">
+            <Trash2 className="w-5 h-5" />
+            Eliminar Cuenta
           </button>
         </div>
       </div>

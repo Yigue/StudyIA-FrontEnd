@@ -1,17 +1,18 @@
 export interface User {
   id: string;
   email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  settings: UserSettings;
-  created_at: Date;
-  updated_at: Date;
+  name: string;
+  role_id: string;
+  isEmailVerified: boolean;
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
 }
 
 export interface UserSettings {
-  theme: 'light' | 'dark';
-  notifications_enabled: boolean;
-  study_reminder_time: string | null;
-  session_duration: number;
+  darkMode: boolean;
+  notifications: boolean;
+  studyReminders: boolean;
+  sessionDuration: number;
+  theme: string;
 }
 

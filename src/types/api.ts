@@ -1,17 +1,35 @@
+interface Meta {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+export interface Params {
+  page?: number;
+  limit?: number;
+  search?: string;
+  tags?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
 export interface ApiResponse<T> {
+  status: "success" | "error";
   data: T;
-  error: ApiError | null;
-  status: number;
-  message:string
-  success:boolean
+  message?: string;
+  meta?: Meta;
+
 }
 
 export interface ApiError {
+  status: "error";
   message: string;
-  code: string;
-  status: number;
-  details?: Record<string, undefined>;
+  code: number;
+  errors?: Array<{
+    path: string;
+    message: string;
+  }>; 
 }
+
 
 export type ApiErrorCode =
   | "VALIDATION_ERROR"

@@ -4,14 +4,9 @@ import StatGrid from "./components/StatGrid";
 import ChartsGrid from "./components/ChartsGrid";
 import { useDashboardData } from "./hooks/useDashboardData";
 
+
 const DashboardPage: React.FC = () => {
-  const {
-    stats,
-    studySessions,
-    upcomingReviews,
-    isLoading,
-    refreshData
-  } = useDashboardData();
+  const { stats, studySessions, upcomingReviews, refreshData, isLoading } = useDashboardData();
 
   return (
     <DashboardLayout

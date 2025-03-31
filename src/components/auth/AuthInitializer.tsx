@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useAuthActions, useAuth } from '../../hook/useAuth';
+import { useAuthActions, useAuth } from '../../hooks/useAuth';
 
 export const AuthInitializer = () => {
   const { checkAuth } = useAuthActions();

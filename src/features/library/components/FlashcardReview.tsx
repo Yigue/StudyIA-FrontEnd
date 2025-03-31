@@ -85,8 +85,8 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
   
   if (!flashcard) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-        <p className="text-gray-600">No hay flashcards disponibles para revisar</p>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+        <p className="text-gray-600 dark:text-gray-400">No hay flashcards disponibles para revisar</p>
       </div>
     );
   }
@@ -94,21 +94,44 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
   // Índice actual para mostrar
   const displayIndex = isArrayMode ? currentIndex : propCurrentIndex;
   
+  // Helper para obtener el color según dificultad
+  const getDifficultyColor = (difficulty: number) => {
+    if (difficulty <= 2) {
+      return {
+        bg: 'bg-green-100 dark:bg-green-900/30',
+        hover: 'hover:bg-green-200 dark:hover:bg-green-900/50',
+        text: 'text-green-600 dark:text-green-400'
+      };
+    } else if (difficulty === 3) {
+      return {
+        bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+        hover: 'hover:bg-yellow-200 dark:hover:bg-yellow-900/50',
+        text: 'text-yellow-600 dark:text-yellow-400'
+      };
+    } else {
+      return {
+        bg: 'bg-red-100 dark:bg-red-900/30',
+        hover: 'hover:bg-red-200 dark:hover:bg-red-900/50',
+        text: 'text-red-600 dark:text-red-400'
+      };
+    }
+  };
+  
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 rounded-lg">
-            <LayoutGrid className="w-6 h-6 text-indigo-600" />
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+            <LayoutGrid className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-800">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
             Flashcards ({displayIndex + 1} de {totalFlashcards})
           </h3>
         </div>
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-500">
-            Próxima revisión: {new Date(flashcard.next_review).toLocaleDateString()}
+          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Próxima revisión: {new Date(flashcard.lastReviewed || flashcard.createdAt).toLocaleDateString()}
           </span>
         </div>
       </div>
@@ -120,8 +143,8 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
             disabled={currentIndex === 0}
             className={`p-2 rounded-lg ${
               currentIndex === 0 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'text-indigo-600 hover:bg-indigo-50'
+                ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
+                : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
             }`}
           >
             <ChevronLeft className="w-5 h-5" />
@@ -131,8 +154,8 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
             disabled={currentIndex === totalFlashcards - 1}
             className={`p-2 rounded-lg ${
               currentIndex === totalFlashcards - 1 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'text-indigo-600 hover:bg-indigo-50'
+                ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
+                : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
             }`}
           >
             <ChevronRight className="w-5 h-5" />
@@ -140,14 +163,14 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
         </div>
       )}
 
-      <div className="bg-gray-50 p-6 rounded-lg mb-4">
-        <p className="font-medium text-gray-800 mb-4">{flashcard.question}</p>
+      <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg mb-4">
+        <p className="font-medium text-gray-800 dark:text-gray-100 mb-4">{flashcard.question}</p>
         {isShowingAnswer ? (
-          <p className="text-gray-600">{flashcard.answer}</p>
+          <p className="text-gray-600 dark:text-gray-300">{flashcard.answer}</p>
         ) : (
           <button
             onClick={handleToggleAnswer}
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
           >
             Mostrar respuesta
           </button>
@@ -156,36 +179,27 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
 
       {isShowingAnswer && (
         <div className="flex justify-center gap-4">
-          {[1, 2, 3, 4, 5].map((difficulty) => (
-            <button
-              key={difficulty}
-              onClick={() => handleUpdateDifficulty(difficulty)}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className={`p-3 rounded-lg transition-colors ${
-                difficulty <= 2
-                  ? 'bg-green-100 hover:bg-green-200'
-                  : difficulty === 3
-                  ? 'bg-yellow-100 hover:bg-yellow-200'
-                  : 'bg-red-100 hover:bg-red-200'
-              }`}>
-                <Star className={`w-6 h-6 ${
-                  difficulty <= 2
-                    ? 'text-green-600'
-                    : difficulty === 3
-                    ? 'text-yellow-600'
-                    : 'text-red-600'
-                }`} />
-              </div>
-              <span className="text-sm text-gray-600">
-                {difficulty === 1 ? 'Muy Fácil' :
-                 difficulty === 2 ? 'Fácil' :
-                 difficulty === 3 ? 'Normal' :
-                 difficulty === 4 ? 'Difícil' :
-                 'Muy Difícil'}
-              </span>
-            </button>
-          ))}
+          {[1, 2, 3, 4, 5].map((difficulty) => {
+            const colors = getDifficultyColor(difficulty);
+            return (
+              <button
+                key={difficulty}
+                onClick={() => handleUpdateDifficulty(difficulty)}
+                className="flex flex-col items-center gap-1"
+              >
+                <div className={`p-3 rounded-lg transition-colors ${colors.bg} ${colors.hover}`}>
+                  <Star className={`w-6 h-6 ${colors.text}`} />
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {difficulty === 1 ? 'Muy Fácil' :
+                  difficulty === 2 ? 'Fácil' :
+                  difficulty === 3 ? 'Normal' :
+                  difficulty === 4 ? 'Difícil' :
+                  'Muy Difícil'}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

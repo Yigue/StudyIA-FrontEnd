@@ -6,12 +6,12 @@ interface TextEditorProps {
 }
 
 export const TextEditor = ({ value, onChange }: TextEditorProps) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-900 dark:border-gray-700">
     <div className="flex items-center gap-4 mb-4">
-      <div className="p-3 bg-indigo-50 rounded-lg">
-        <Type className="w-6 h-6 text-indigo-600" />
+      <div className="p-3 bg-indigo-50  dark:bg-indigo-400 rounded-lg ">
+        <Type className="w-6 h-6 text-indigo-600 dark:text-white" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-800">O pega tu texto</h3>
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-white" >O pega tu texto</h3>
     </div>
     <textarea
       value={value}

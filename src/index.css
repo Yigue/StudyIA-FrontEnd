@@ -1,3 +1,145 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 79 70 229; /* indigo-600 */
+  }
+
+  .dark {
+    /* Color principal (indigo) para el tema oscuro - ligeramente ajustado para mejor contraste */
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
+    --color-primary-950: #1e1b4b;
+    
+    /* Colores oscuros generales */
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --border-color: #334155;
+  }
+
+  html {
+    @apply h-full;
+  }
+
+  /* Estilos base para todos los temas */
+  body {
+    @apply bg-gray-50 text-gray-900 transition-colors duration-200 h-full;
+  }
+
+  #root {
+    @apply h-full;
+  }
+
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+
+  /* Estilo para tarjetas */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-none
+           border border-gray-200 dark:border-gray-700 p-6
+           transition-colors duration-200;
+  }
+
+  .dark .card {
+    @apply bg-gray-800 border-gray-700 shadow-none border;
+  }
+
+  /* Estilos para botones */
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 
+           text-white font-medium px-4 py-2 rounded-lg 
+           transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600
+           text-gray-900 dark:text-gray-100 font-medium px-4 py-2 rounded-lg
+           transition-colors duration-200;
+  }
+
+  .dark .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 text-white;
+  }
+
+  /* Estilos para formularios */
+  input, select, textarea {
+    @apply bg-white dark:bg-gray-800 
+           border border-gray-300 dark:border-gray-700 
+           text-gray-900 dark:text-gray-100
+           placeholder-gray-500 dark:placeholder-gray-400
+           rounded-lg px-4 py-2
+           focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 
+           focus:border-transparent outline-none
+           transition-colors duration-200;
+  }
+
+  .dark input, .dark select, .dark textarea {
+    @apply bg-gray-800 border-gray-700 text-white placeholder-gray-400;
+  }
+
+  /* Garantizar que todos los componentes heredan correctamente el tema */
+  .dark *:not(.no-dark) {
+    @apply text-gray-100 border-gray-700;
+  }
+
+  /* Estilos para tablas */
+  table {
+    @apply w-full border-collapse;
+  }
+
+  th {
+    @apply py-3 px-4 text-left bg-gray-50 font-medium text-gray-700 border-b border-gray-200;
+  }
+
+  .dark th {
+    @apply bg-gray-800 text-gray-300 border-gray-700;
+  }
+
+  td {
+    @apply py-3 px-4 border-b border-gray-200;
+  }
+
+  .dark td {
+    @apply border-gray-700;
+  }
+
+  /* Animaciones que se usarán en la aplicación */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@layer components {
+  .input-base {
+    @apply bg-white dark:bg-gray-800 
+           border border-gray-300 dark:border-gray-700 
+           text-gray-900 dark:text-gray-100
+           placeholder-gray-500 dark:placeholder-gray-400
+           rounded-lg px-4 py-2
+           focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 
+           focus:border-transparent outline-none
+           transition-colors duration-200;
+  }
+}

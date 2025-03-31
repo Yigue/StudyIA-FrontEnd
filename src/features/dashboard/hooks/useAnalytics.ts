@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useFlashcards } from '../../../hook/useFlashcards';
-import { useMaterials } from '../../../hook/useMaterials';
+import { useFlashcards } from '../../../hooks/useFlashcards';
+import { useMaterials } from '../../../hooks/useMaterials';
 
 interface AnalyticsData {
   progressByTime: {
@@ -27,8 +27,12 @@ export const useAnalytics = () => {
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  const { flashcards } = useFlashcards();
-  const { materials } = useMaterials();
+  // Usar los hooks modernizados con estructura normalizada
+  const { materials, loading: materialsLoading } = useMaterials();
+  const { flashcards, loading: flashcardsLoading } = useFlashcards();
+  
+  // Determinar el estado de carga combinado
+  const isDataLoading = materialsLoading.isLoading || flashcardsLoading.isLoading;
   
   // Función para generar datos de análisis basados en materiales y flashcards
   const generateAnalyticsData = () => {
@@ -42,14 +46,14 @@ export const useAnalytics = () => {
         
         return {
           period: date.toLocaleDateString('es-ES', { month: 'long' }),
-          materialsCount: Math.floor(Math.random() * (materials?.length || 10)),
-          flashcardsCount: Math.floor(Math.random() * (flashcards?.length || 20))
+          materialsCount: Math.floor(Math.random() * (materials.length || 10)),
+          flashcardsCount: Math.floor(Math.random() * (flashcards.length || 20))
         };
       });
       
       // Generar distribución de materiales por tipo (simulado)
       const materialTypes = ['PDF', 'Texto', 'Código', 'Imagen', 'Otro'];
-      const totalMaterials = materials?.length || 10;
+      const totalMaterials = materials.length || 10;
       
       let remaining = 100;
       const materialsDistribution = materialTypes.map((label, index) => {
@@ -90,14 +94,17 @@ export const useAnalytics = () => {
     }
   };
   
-  // Generar datos iniciales
+  // Cargar datos cuando se montan los componentes o cambian los datos
   useEffect(() => {
+    // Evitar ejecutar si los datos están cargando
+    if (isDataLoading) return;
+    
     generateAnalyticsData();
-  }, [materials, flashcards]);
+  }, [materials, flashcards, isDataLoading]);
   
   return {
     analytics,
-    isLoading,
+    isLoading: isLoading || isDataLoading,
     refreshAnalytics: generateAnalyticsData
   };
 }; 

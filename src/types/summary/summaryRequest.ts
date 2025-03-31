@@ -1,6 +1,10 @@
-import { Tag } from "../tag/tag";
-
-export interface summaryCreatedDTO {
+export interface SummaryCreateDTO {
+  material_id: string;
   content: string;
-  tag?:Tag[]
+  format: "bullet_points" | "paragraph" | "structured";
+}
+
+export interface SummaryUpdateDTO {
+  content?: string;
+  format?: "bullet_points" | "paragraph" | "structured";
 }

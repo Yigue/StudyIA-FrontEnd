@@ -34,12 +34,12 @@ const SubjectSelectorComponent: React.FC<SubjectSelectorProps> = ({
   };
 
   return (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-600">
     <div className="flex items-center justify-between mb-4">
-      <h3 className="text-lg font-semibold text-gray-800">Seleccionar Materia</h3>
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Seleccionar Materia</h3>
       <button
           onClick={handleToggleNewSubject}
-        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
+        className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-500"
       >
         <FolderPlus className="w-5 h-5" />
         Nueva Materia
@@ -53,15 +53,15 @@ const SubjectSelectorComponent: React.FC<SubjectSelectorProps> = ({
           value={newSubjectName}
             onChange={(e) => setNewSubjectName(e.target.value)}
           placeholder="Nombre de la materia"
-          className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="flex-1 p-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:focus:ring-indigo-400 dark:focus:border-transparent"
         />
         <button
             onClick={handleCreateNewSubject}
             disabled={!newSubjectName.trim()}
             className={`px-4 py-2 rounded-lg transition-colors ${
               newSubjectName.trim() 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                ? 'bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white hover:bg-indigo-700 dark:hover:bg-indigo-600' 
+                : 'bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-200 cursor-not-allowed dark:cursor-not-allowed'
             }`}
         >
           Agregar
@@ -82,13 +82,13 @@ const SubjectSelectorComponent: React.FC<SubjectSelectorProps> = ({
               })}
               className={`p-3 rounded-lg border text-left transition-all ${
                 selectedSubject?.id === subject.id
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50/50'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-600 dark:border-indigo-500 text-indigo-700 dark:text-indigo-400' 
+                  : 'border-gray-200 dark:border-gray-600 hover:border-indigo-200 dark:hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-50/50'
               }`}
             >
               <div className="flex items-center gap-2">
                 {selectedSubject?.id === subject.id && (
-                  <Check className="w-4 h-4 text-indigo-600" />
+                  <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 )}
                 <span>{subject.name}</span>
               </div>
@@ -97,7 +97,7 @@ const SubjectSelectorComponent: React.FC<SubjectSelectorProps> = ({
           
           <button
             onClick={handleToggleNewSubject}
-            className="p-3 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center gap-2"
+            className="p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-200 hover:border-indigo-300 dark:hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-500 flex items-center justify-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Agregar materia

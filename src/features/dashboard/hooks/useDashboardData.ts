@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useFlashcards } from '../../../hook/useFlashcards';
-import { useMaterials } from '../../../hook/useMaterials';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { StudyStats, StudySession, FlashcardReview } from '../types/dashboard.types';
 import {
   generateMockStudySessions,
@@ -9,6 +7,7 @@ import {
   calculateStreak,
 } from '../utils/dashboard.utils';
 import { Flashcard } from '../../../types/flashcards/flashcards';
+import useApp from '../../../hooks/useApp';
 
 interface DashboardData {
   stats: StudyStats;
@@ -19,7 +18,16 @@ interface DashboardData {
 }
 
 export const useDashboardData = (): DashboardData => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // Usar una sola instancia de useApp para evitar ciclos
+  const { 
+    isLoading, 
+    materials, 
+    flashcards,
+    fetchData,
+    onRefresh 
+  } = useApp();
+
+  // Estado local para dashboard
   const [stats, setStats] = useState<StudyStats>({
     totalMaterials: 0,
     totalFlashcards: 0,
@@ -29,16 +37,12 @@ export const useDashboardData = (): DashboardData => {
   });
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [upcomingReviews, setUpcomingReviews] = useState<FlashcardReview[]>([]);
-  
-  const { flashcards } = useFlashcards();
-  const { materials } = useMaterials();
 
   // Función para generar revisiones próximas basadas en los flashcards
-  const generateUpcomingReviews = (flashcards: Flashcard[]): FlashcardReview[] => {
-    if (!flashcards || flashcards.length === 0) return [];
+  const generateUpcomingReviews = useCallback((cards: Flashcard[]): FlashcardReview[] => {
+    if (!cards || cards.length === 0) return [];
     
-    // Tomar hasta 5 flashcards y convertirlos al formato de revisión
-    return flashcards
+    return cards
       .slice(0, 5)
       .map(card => ({
         question: card.question || 'Sin pregunta',
@@ -47,14 +51,13 @@ export const useDashboardData = (): DashboardData => {
         ).toISOString(),
         difficulty: parseInt(card.difficulty) || Math.floor(Math.random() * 5) + 1
       }));
-  };
+  }, []);
 
-  const loadData = () => {
-    setIsLoading(true);
-    
-    try {
-      const mockSessions = generateMockStudySessions();
-      
+  // Actualizar estadísticas cuando cambian los datos
+  useEffect(() => {
+    const mockSessions = generateMockStudySessions();
+    fetchData();
+    if (materials || flashcards) {
       setStats({
         totalMaterials: materials?.length || 0,
         totalFlashcards: flashcards?.length || 0,
@@ -67,29 +70,24 @@ export const useDashboardData = (): DashboardData => {
       });
       
       setStudySessions(mockSessions);
-      setUpcomingReviews(generateUpcomingReviews(flashcards || []));
-    } catch (error) {
-      console.error('Error al cargar datos del dashboard:', error);
-    } finally {
-      setIsLoading(false);
+      
+      if (flashcards?.length) {
+        setUpcomingReviews(generateUpcomingReviews(flashcards));
+      }
     }
-  };
+  }, []);
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    loadData();
-  }, [materials, flashcards]);
+  // Función para refrescar los datos
+  const refreshData = useCallback(() => {
+    onRefresh();
+  }, [onRefresh]);
 
-  // Función para refrescar los datos manualmente
-  const refreshData = () => {
-    loadData();
-  };
-
-  return {
+  // Memoizar los datos para evitar re-renderizados innecesarios
+  return useMemo(() => ({
     stats,
     studySessions,
     upcomingReviews,
     isLoading,
     refreshData
-  };
+  }), [stats, studySessions, upcomingReviews, isLoading, refreshData]);
 }; 

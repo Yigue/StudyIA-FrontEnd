@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, Grid } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useFlashcards, useFlashcardsActions } from '../../hook/useFlashcards';
-import { useTags } from '../../hook/useTags';
+import { useFlashcards } from '../../hooks/useFlashcards';
+import { useTags } from '../../hooks/useTags';
 import FlashcardsReviewComponent from './components/FlashcardsReviewComponent';
 import { SearchBar } from './components/SearchBar';
 import { FilterPanel } from './components/FilterPanel';
 import { StatsPanel } from './components/StatsPanel';
 import { FlashcardFilters, FlashcardStats } from './types/flashcards.types';
-
-
 
 const FlashcardsReviewPage = () => {
   // Estado de la UI
@@ -23,16 +21,25 @@ const FlashcardsReviewPage = () => {
   });
 
   // Obtener datos de los hooks centralizados
-  const { flashcards, isLoading } = useFlashcards();
+  const { 
+    flashcards, 
+    getFlashcardsForReview, 
+    reviewFlashcard,
+    loading 
+  } = useFlashcards();
+  
   const { tags } = useTags();
-  const { getFlashcardsForReview, updateFlashcardReview } = useFlashcardsActions();
 
   // Cargar flashcards al montar el componente
   useEffect(() => {
-    getFlashcardsForReview();
-  }, [getFlashcardsForReview]);
+    getFlashcardsForReview({
+      limit: 50,
+      difficulty: filters.difficulty !== 'all' ? filters.difficulty as "easy" | "medium" | "hard" : undefined,
+      tags: filters.subject !== 'all' ? filters.subject : undefined
+    });
+  }, [getFlashcardsForReview, filters.difficulty, filters.subject]);
 
-  // Filtrar flashcards basados en búsqueda y filtros
+  // Filtrar flashcards basados en búsqueda
   const filteredFlashcards = useMemo(() => {
     if (!flashcards) return [];
     
@@ -46,30 +53,16 @@ const FlashcardsReviewPage = () => {
       );
     }
 
-    // Aplicar filtro de dificultad
-    if (filters.difficulty !== 'all') {
-      filtered = filtered.filter(card => {
-        return card.difficulty === filters.difficulty;
-      });
-    }
-
-    // Aplicar filtro de materia (si está disponible en los datos)
-    if (filters.subject !== 'all') {
-      filtered = filtered.filter(card => 
-        card.material_id === filters.subject
-      );
-    }
-
     // Aplicar filtro de estado
     if (filters.status !== 'all') {
       const now = new Date();
       filtered = filtered.filter(card => {
-        const reviewDate = new Date(card.next_review);
+        const reviewDate = card.lastReviewed ? new Date(card.lastReviewed) : null;
         switch (filters.status) {
           case 'pending':
-            return reviewDate > now;
+            return reviewDate === null || (reviewDate && reviewDate > now);
           case 'due':
-            return reviewDate <= now;
+            return reviewDate !== null && reviewDate <= now;
           default:
             return true;
         }
@@ -119,14 +112,10 @@ const FlashcardsReviewPage = () => {
   const handleUpdateDifficulty = async (difficulty: number) => {
     if (!currentFlashcard) return;
     
-    const nextReviewDate = new Date();
-    const daysToAdd = Math.pow(2, difficulty - 1);
-    nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
-
     try {
-      await updateFlashcardReview(currentFlashcard.id, {
-        difficulty,
-        next_review: nextReviewDate.toISOString()
+      await reviewFlashcard(currentFlashcard.id, {
+        rating: difficulty,
+        notes: ""
       });
       handleNext();
     } catch (error) {
@@ -143,10 +132,12 @@ const FlashcardsReviewPage = () => {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Repaso de Flashcards</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Repaso de Flashcards
+        </h2>
         <Link 
           to="/flashcards/explorador"
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          className="btn-primary flex items-center gap-2"
         >
           <Grid className="w-5 h-5" />
           Explorar Flashcards
@@ -156,7 +147,7 @@ const FlashcardsReviewPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Panel lateral con búsqueda, filtros y estadísticas */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="card">
             <SearchBar 
               value={searchTerm} 
               onChange={setSearchTerm} 
@@ -176,9 +167,9 @@ const FlashcardsReviewPage = () => {
 
         {/* Área de revisión de flashcards */}
         <div className="lg:col-span-2">
-          {isLoading ? (
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-              <p className="text-gray-600">Cargando flashcards...</p>
+          {loading.isLoading ? (
+            <div className="card flex items-center justify-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
             </div>
           ) : filteredFlashcards.length > 0 && currentFlashcard ? (
             <FlashcardsReviewComponent
@@ -192,9 +183,9 @@ const FlashcardsReviewPage = () => {
               totalCards={filteredFlashcards.length}
             />
           ) : (
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-              <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">
+            <div className="card text-center">
+              <BookOpen className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">
                 No se encontraron flashcards para repasar
               </p>
             </div>

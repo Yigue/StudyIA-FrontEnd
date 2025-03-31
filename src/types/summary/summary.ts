@@ -1,15 +1,14 @@
-import { StudyMaterial } from "../studyMaterial/studyMaterial";
-
-
-
 export interface Summary {
   id: string;
-  user_id: string;
-  material_id: string | null;
-  summary_text: string;
-  tags: string[];
-  ai_generated: boolean;
-  created_at: Date;
-  updated_at: Date;
-  material?: StudyMaterial;
+  content: string;
+  format: "bullet_points" | "paragraph" | "structured";
+  materialId: string; // UUID del material
+  userId: string; // UUID del creador
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
+  material?: {
+    id: string;
+    title: string;
+    description: string;
+  };
 }

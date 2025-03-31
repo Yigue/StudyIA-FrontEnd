@@ -3,13 +3,13 @@ import { MaterialsList } from './components/MaterialsList';
 import { MaterialDetail } from './components/MaterialDetail';
 import { FlashcardReview } from './components/FlashcardReview';
 import LibraryLayout from './components/layout/LibraryLayout';
-import { useMaterials } from '../../hook/useMaterials';
-import { useFlashcards, useFlashcardsActions } from '../../hook/useFlashcards';
-import { useSummaries } from '../../hook/useSummaries';
-import { useMaterialsActions } from '../../hook/useMaterials';
-import { StudyMaterial, Flashcard, Summary } from '../../types';
-import { BookOpen, FileText, AlertCircle } from 'lucide-react';
+import { useMaterials } from '../../hooks/useMaterials';
+import { useFlashcards } from '../../hooks/useFlashcards';
+import { useSummaries } from '../../hooks/useSummaries';
+import { StudyMaterial } from '../../types/studyMaterial/studyMaterial';
+import { BookOpen, FileText } from 'lucide-react';
 
+// Componentes para el sistema de pestañas
 const Tabs: React.FC<{
   children: React.ReactNode 
 }> = ({ children }) => {
@@ -48,86 +48,65 @@ export const LibraryPage: React.FC = () => {
   // Estado para búsqueda
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Hooks para datos y acciones
-  const { materials, isLoading: materialsLoading } = useMaterials();
-  const { getAllMaterials } = useMaterialsActions();
-  const { flashcards, isLoading: flashcardsLoading } = useFlashcards();
-  const { updateFlashcard } = useFlashcardsActions();
-  const { summaries, isLoading: summariesLoading } = useSummaries();
+  // Estado para la pestaña activa
+  const [activeTab, setActiveTab] = useState('material');
   
   // Estado para errores
   const [error, setError] = useState<string | null>(null);
   
-  // Estado para la pestaña activa
-  const [activeTab, setActiveTab] = useState('material');
+  // Obtener datos y funciones de los hooks actualizados
+  const { 
+    materials, 
+    fetchMaterials,
+    loading: materialsLoading
+  } = useMaterials();
   
-  // Flashcards para el material seleccionado
-  const [materialFlashcards, setMaterialFlashcards] = useState<Flashcard[]>([]);
+  const {
+    flashcards,
+    getFlashcardsByMaterial,
+    updateFlashcard,
+    loading: flashcardsLoading
+  } = useFlashcards();
   
-  // Summaries para el material seleccionado
-  const [materialSummaries, setMaterialSummaries] = useState<Summary[] | null>(null);
+  const {
+    summaries,
+    getSummariesByMaterial,
+    loading: summariesLoading
+  } = useSummaries();
   
   // Cargar materiales al montar el componente
-  useEffect(() => {
-    const loadMaterials = async () => {
-      try {
-        console.log('Cargando materiales...');
-        await getAllMaterials();
-        console.log('Materiales cargados:', materials);
-      } catch (err) {
-        console.error('Error al cargar materiales:', err);
-        setError('No se pudieron cargar los materiales. Por favor, intenta de nuevo.');
-      }
-    };
-    
-    loadMaterials();
-  }, [getAllMaterials]);
-  
-  // Añadir efecto para depuración para ver cuando cambia el array de materiales
-  useEffect(() => {
-    console.log('Estado de materiales actualizado:', materials);
-  }, [materials]);
+
   
   // Función para refrescar manualmente los materiales
-  const handleRefreshMaterials = async () => {
-    try {
-      setError(null);
-      console.log('Refrescando materiales manualmente...');
-      await getAllMaterials();
-    } catch (err) {
-      console.error('Error al refrescar materiales:', err);
-      setError('No se pudieron cargar los materiales. Por favor, intenta de nuevo.');
-    }
+  const handleRefreshMaterials = () => {
+    fetchMaterials();
   };
   
-  // Cargar flashcards cuando se selecciona un material
+  // Cargar flashcards y resúmenes cuando se selecciona un material
   useEffect(() => {
-    if (selectedMaterial && flashcards) {
-      const filteredFlashcards = flashcards.filter(
-        (f) => f.material_id === selectedMaterial.id
-      );
-      setMaterialFlashcards(filteredFlashcards);
-    } else {
-      setMaterialFlashcards([]);
+    if (selectedMaterial?.id) {
+
+      getFlashcardsByMaterial(selectedMaterial.id);
+      getSummariesByMaterial(selectedMaterial.id);
     }
-  }, [selectedMaterial, flashcards]);
+  }, [selectedMaterial, getFlashcardsByMaterial, getSummariesByMaterial]);
   
-  // Cargar summaries cuando se selecciona un material
-  useEffect(() => {
-    if (selectedMaterial && summaries) {
-      const filteredSummaries = summaries.filter(
-        (s) => s.material_id === selectedMaterial.id
-      );
-      setMaterialSummaries(filteredSummaries);
-    } else {
-      setMaterialSummaries(null);
-    }
-  }, [selectedMaterial, summaries]);
+  // Obtener flashcards del material seleccionado
+  const materialFlashcards = selectedMaterial 
+    ? flashcards.filter(f => f.materialId === selectedMaterial.id) 
+    : [];
+  
+  // Obtener resúmenes del material seleccionado  
+  const materialSummaries = selectedMaterial 
+    ? summaries.filter(s => s.materialId === selectedMaterial.id)
+    : [];
   
   // Manejar el cambio de dificultad de flashcard
   const handleDifficultyChange = async (flashcardId: string, difficulty: number) => {
     try {
-      await updateFlashcard(flashcardId, { difficulty: difficulty.toString() });
+      await updateFlashcard(flashcardId, { 
+        difficulty: difficulty === 1 ? "easy" : difficulty === 2 ? "medium" : "hard" 
+      });
     } catch (error) {
       console.error('Error al actualizar la dificultad:', error);
     }
@@ -143,23 +122,23 @@ export const LibraryPage: React.FC = () => {
   const filteredMaterials = searchTerm.trim() 
     ? materials.filter(m => 
         m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.content.toLowerCase().includes(searchTerm.toLowerCase())
+        (m.content && m.content.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     : materials;
   
   // Determinar si estamos cargando
-  const isLoading = materialsLoading || flashcardsLoading || summariesLoading;
+  const isLoading = materialsLoading.isLoading || flashcardsLoading.isLoading || summariesLoading.isLoading;
 
   // Contenido principal cuando hay un material seleccionado
   const mainContent = selectedMaterial ? (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       <Tabs>
-        <TabsList className="border-b border-gray-200 w-full p-0 h-auto flex">
+        <TabsList className="border-b border-gray-200 dark:border-gray-700 w-full p-0 h-auto flex">
           <TabsTrigger 
             className={`px-6 py-3 flex items-center gap-2 ${
               activeTab === 'material' 
-              ? 'border-b-2 border-indigo-600 text-indigo-700' 
-              : 'text-gray-500'
+              ? 'border-b-2 border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-400' 
+              : 'text-gray-500 dark:text-gray-400'
             }`}
             onClick={() => setActiveTab('material')}
           >
@@ -170,8 +149,8 @@ export const LibraryPage: React.FC = () => {
           <TabsTrigger 
             className={`px-6 py-3 flex items-center gap-2 ${
               activeTab === 'flashcards' 
-              ? 'border-b-2 border-indigo-600 text-indigo-700' 
-              : 'text-gray-500'
+              ? 'border-b-2 border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-400' 
+              : 'text-gray-500 dark:text-gray-400'
             }`}
             disabled={materialFlashcards.length === 0}
             onClick={() => setActiveTab('flashcards')}
@@ -182,84 +161,58 @@ export const LibraryPage: React.FC = () => {
         </TabsList>
         
         <TabsContent 
-          className="p-0" 
+          className="p-6"
           isActive={activeTab === 'material'}
         >
           <MaterialDetail 
-            material={selectedMaterial}
+            material={selectedMaterial} 
             selectedSummary={materialSummaries}
           />
         </TabsContent>
         
         <TabsContent 
-          className="p-0"
+          className="p-6"
           isActive={activeTab === 'flashcards'}
         >
           {materialFlashcards.length > 0 ? (
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600" />
-                Repasa con Flashcards
-              </h3>
-              <FlashcardReview 
-                flashcards={materialFlashcards}
-                onDifficultyChange={handleDifficultyChange}
-              />
-            </div>
+            <FlashcardReview 
+              flashcards={materialFlashcards}
+              onDifficultyChange={handleDifficultyChange}
+            />
           ) : (
-            <div className="text-center p-12">
-              <p className="text-gray-500">No hay flashcards disponibles para este material.</p>
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">No hay flashcards disponibles para este material.</p>
             </div>
           )}
         </TabsContent>
       </Tabs>
     </div>
   ) : (
-    <div className="bg-gray-50 rounded-xl p-12 text-center border border-gray-100">
-      <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-700 mb-2">
-        Selecciona un material para ver sus detalles
-      </h3>
-      <p className="text-gray-500">
-        Aquí podrás revisar tus materiales de estudio, resúmenes y flashcards.
-      </p>
-    </div>
-  );
-
-  // Contenido de la barra lateral
-  const sidebarContent = materials && materials.length > 0 ? (
-    <MaterialsList 
-      materials={filteredMaterials}
-      onSelectMaterial={handleSelectMaterial}
-    />
-  ) : (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
-      <p className="text-gray-600 mb-4">No tienes materiales disponibles.</p>
-      <p className="text-sm text-gray-500">
-        Puedes crear materiales nuevos en la sección de estudio.
+    <div className="flex flex-col items-center justify-center py-12 px-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+      <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+      <h3 className="text-xl text-gray-700 dark:text-gray-300 font-medium mb-2">Selecciona un material</h3>
+      <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
+        Haz clic en un material de la lista para ver sus detalles, resúmenes y flashcards.
       </p>
     </div>
   );
   
   return (
     <LibraryLayout
-      isLoading={isLoading}
-      title="Mi Biblioteca"
+      title="Biblioteca de Materiales"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       onRefresh={handleRefreshMaterials}
-      sidebar={sidebarContent}
-      main={
-        <>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center">
-              <AlertCircle className="w-5 h-5 mr-2" />
-              <p>{error}</p>
-            </div>
-          )}
-          {mainContent}
-        </>
+      isLoading={isLoading}
+      error={error}
+      sidebar={
+        <MaterialsList 
+          materials={filteredMaterials}
+          onSelectMaterial={handleSelectMaterial}
+          isLoading={isLoading}
+        />
       }
+      main={mainContent}
     />
   );
 };
