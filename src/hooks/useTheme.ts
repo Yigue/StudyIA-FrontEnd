@@ -9,6 +9,9 @@ interface UseThemeResult {
   setTheme: (theme: Theme) => void;
 }
 
+/**
+ * Hook optimizado para gestionar el tema de la aplicación
+ */
 export const useTheme = (): UseThemeResult => {
   // Verificar si hay un tema guardado en localStorage o usar la preferencia del sistema
   const getInitialTheme = (): Theme => {

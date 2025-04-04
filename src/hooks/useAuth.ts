@@ -1,38 +1,120 @@
-import { useMemo } from "react";
-import { useAuthStore } from "../store/auth.store";
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { 
+  useUserQuery, 
+  useLoginMutation, 
+  useRegisterMutation,
+  useLogoutMutation,
+  useRefreshTokenMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useSendVerificationEmailMutation
+} from './queries/useAuthQuery';
+import { User, userLoginDTO, userRegisterDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../types';
+// import { useQueryClient } from '@tanstack/react-query';
 
-// Hook para acceder a la información de autenticación
+/**
+ * Hook para gestionar la autenticación de usuarios usando React Query
+ * pero manteniendo la interfaz compatible con la versión anterior.
+ */
 export const useAuth = () => {
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
-  const error = useAuthStore((state) => state.error);
+  // const queryClient = useQueryClient();
+  const [hasToken, setHasToken] = useState(Boolean(localStorage.getItem('token')));
   
-  return {
+  // Queries y Mutaciones
+  const { 
+    data: userData, 
+    isLoading, 
+    error, 
+    refetch: fetchUser 
+  } = useUserQuery();
+  
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+  const logoutMutation = useLogoutMutation();
+  const refreshTokenMutation = useRefreshTokenMutation();
+  const forgotPasswordMutation = useForgotPasswordMutation();
+  const resetPasswordMutation = useResetPasswordMutation();
+  const sendVerificationEmailMutation = useSendVerificationEmailMutation();
+  
+  // Comprobar si hay token al iniciar
+  useEffect(() => {
+    if (hasToken) {
+      fetchUser();
+    }
+  }, [hasToken, fetchUser]);
+
+  // Funciones con interfaz compatible con la versión anterior
+  const checkAuth = useCallback(async () => {
+    if (!hasToken) return null;
+    
+    try {
+      const { data } = await fetchUser();
+      return data;
+    } catch (error) {
+      console.error('Error al verificar autenticación:', error);
+      // Si hay error de autenticación, intentar refrescar el token
+      await refreshAccessToken();
+      return null;
+    }
+  }, [hasToken, fetchUser]);
+
+  const login = useCallback(async (credentials: userLoginDTO) => {
+    const result = await loginMutation.mutateAsync(credentials);
+    setHasToken(true);
+    return result.data;
+  }, [loginMutation]);
+
+  const register = useCallback(async (userData: userRegisterDTO) => {
+    const result = await registerMutation.mutateAsync(userData);
+    setHasToken(true);
+    return result.data;
+  }, [registerMutation]);
+
+  const logout = useCallback(async () => {
+    await logoutMutation.mutateAsync();
+    setHasToken(false);
+  }, [logoutMutation]);
+
+  const refreshAccessToken = useCallback(async () => {
+    try {
+      const result = await refreshTokenMutation.mutateAsync();
+      setHasToken(!!result.data?.accessToken);
+      return !!result.data?.accessToken;
+    } catch (error) {
+      console.error('Error al refrescar token:', error);
+      setHasToken(false);
+      return false;
+    }
+  }, [refreshTokenMutation]);
+
+  const forgotPassword = useCallback(async (data: ForgotPasswordDTO) => {
+    await forgotPasswordMutation.mutateAsync(data);
+  }, [forgotPasswordMutation]);
+
+  const resetPassword = useCallback(async (token: string, data: ResetPasswordDTO) => {
+    await resetPasswordMutation.mutateAsync({ token, passwordData: data });
+  }, [resetPasswordMutation]);
+
+  const sendVerificationEmail = useCallback(async () => {
+    await sendVerificationEmailMutation.mutateAsync();
+  }, [sendVerificationEmailMutation]);
+
+  const clearError = useCallback(() => {
+    // No hay equivalente directo en React Query
+  }, []);
+
+  // Datos derivados
+  const user = useMemo<User | null>(() => userData || null, [userData]);
+  const isAuthenticated = useMemo(() => Boolean(user), [user]);
+  
+  // Retornar objeto con misma estructura que el hook original
+  return useMemo(() => ({
     user,
     isAuthenticated,
     isLoading,
-    isCheckingAuth,
-    error,
-  };
-};
-
-// Hook para acceder a las acciones de autenticación
-export const useAuthActions = () => {
-  const login = useAuthStore((state) => state.login);
-  const register = useAuthStore((state) => state.register);
-  const logout = useAuthStore((state) => state.logout);
-  const checkAuth = useAuthStore((state) => state.checkAuth);
-  const refreshAccessToken = useAuthStore((state) => state.refreshAccessToken);
-  const forgotPassword = useAuthStore((state) => state.forgotPassword);
-  const resetPassword = useAuthStore((state) => state.resetPassword);
-  const updateProfile = useAuthStore((state) => state.updateProfile);
-  const changePassword = useAuthStore((state) => state.changePassword);
-  const sendVerificationEmail = useAuthStore((state) => state.sendVerificationEmail);
-  const clearError = useAuthStore((state) => state.clearError);
-  
-  return {
+    isCheckingAuth: isLoading,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
+    
     login,
     register,
     logout,
@@ -40,28 +122,21 @@ export const useAuthActions = () => {
     refreshAccessToken,
     forgotPassword,
     resetPassword,
-    updateProfile,
-    changePassword,
     sendVerificationEmail,
-    clearError,
-  };
-};
-
-// Hook para acceder al estado de autenticación
-export const useAuthStatus = () => {
-  // Obtenemos el estado directamente
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const isLoading = useAuthStore(state => state.isLoading);
-  const isCheckingAuth = useAuthStore(state => state.isCheckingAuth);
-  const token = useAuthStore(state => state.token);
-  const refreshToken = useAuthStore(state => state.refreshToken);
-  
-  // Cacheamos el objeto de retorno con useMemo
-  return useMemo(() => ({
+    clearError
+  }), [
+    user,
     isAuthenticated,
     isLoading,
-    isCheckingAuth,
-    token,
-    refreshToken
-  }), [isAuthenticated, isLoading, isCheckingAuth, token, refreshToken]);
+    error,
+    login,
+    register,
+    logout,
+    checkAuth,
+    refreshAccessToken,
+    forgotPassword,
+    resetPassword,
+    sendVerificationEmail,
+    clearError
+  ]);
 };

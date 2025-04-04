@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth, useAuthActions } from "../../../hooks/useAuth";
+import { useAuth } from "../../../hooks/useAuth";
 import { useEffect, useState } from "react";
 import { userLoginDTO } from "../../../types/user/userRequest";
 
@@ -9,8 +9,7 @@ interface LoginFormProps {
 
 function LoginForm({ setIsLoginMode }: LoginFormProps) {
   const navigate = useNavigate();
-  const { error, isAuthenticated } = useAuth();
-  const { login, clearError } = useAuthActions();
+  const { error, isAuthenticated, login, clearError } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

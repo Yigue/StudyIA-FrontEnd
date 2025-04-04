@@ -27,6 +27,7 @@ declare module "@/types" {
     createdAt: string;
     updatedAt: string;
     userId: string;
+    type: string;
     status?: 'draft' | 'processing' | 'completed';
     tags: Tag[];
     attachments: FileAttachment[];

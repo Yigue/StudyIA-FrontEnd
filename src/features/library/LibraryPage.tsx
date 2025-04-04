@@ -1,6 +1,4 @@
-import React from "react";
 import { useLibraryMaterials } from "./hooks/useLibraryMaterials";
-import { SearchBar } from "./components/SearchBar";
 import { MaterialDetail } from "./components/MaterialDetail";
 import { FlashcardList } from "./components/FlashcardList";
 import { SummaryList } from "./components/SummaryList";
@@ -10,6 +8,7 @@ import { MaterialsFilters } from "./components/MaterialsFilters";
 import { MaterialsEmptyState } from "./components/MaterialsEmptyState";
 import { LoadingState } from "./components/LoadingState";
 import { ProcessingIndicator } from "./components/ProcessingIndicator";
+import { SearchBar } from "./components/SearchBar";
 
 /**
  * Página principal de la biblioteca de materiales de estudio
@@ -40,8 +39,8 @@ export default function LibraryPage() {
 
   // Opciones para el procesamiento de materiales
   const processingOptions = {
-    summary: true,
-    flashcards: true
+    generateSummary: true,
+    generateFlashcards: true
   };
 
   // Renderizar mensaje cargando cuando se están cargando los materiales

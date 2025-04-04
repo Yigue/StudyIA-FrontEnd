@@ -1,137 +1,205 @@
-import { useCallback, useMemo } from 'react';
-import { useSummariesStore } from '../store/summaries.store';
-import { Summary } from '../types/summary/summary';
+import { useCallback, useMemo, useState } from 'react';
+import { 
+  useSummariesQuery, 
+  useSummaryQuery, 
+  useSummariesByMaterialQuery,
+  useCreateSummary,
+  useUpdateSummary,
+  useDeleteSummary
+} from './queries/useSummariesQuery';
+import { Summary, SummaryCreateDTO, SummaryUpdateDTO, Params } from '@/types';
+import { useQueryClient } from '@tanstack/react-query';
+import * as summaryService from '../services/summary/summaryService';
 
-// Hook principal para acceder a resúmenes con selección optimizada y memoización
+/**
+ * Hook principal para acceder a resúmenes con React Query
+ * pero manteniendo la interfaz compatible con la versión Zustand
+ */
 export const useSummaries = () => {
-  // Selectores optimizados de datos del store
-  const state = useSummariesStore();
-  const { 
-    entities,
-    ids, 
-    currentSummaryId, 
-    status, 
-    pagination,
-  } = state;
+  const [currentSummaryId, setCurrentSummaryId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  
+  // Queries
+  const { data: summariesData, isLoading, error } = useSummariesQuery();
+  
+  // Mutaciones
+  const createSummaryMutation = useCreateSummary();
+  const updateSummaryMutation = useUpdateSummary();
+  const deleteSummaryMutation = useDeleteSummary();
 
-  // Acciones más utilizadas del store
-  const actions = {
-    getAllSummaries: state.getAllSummaries,
-    getSummaryById: state.getSummaryById,
-    getSummariesByMaterial: state.getSummariesByMaterial,
-    createSummary: state.createSummary,
-    updateSummary: state.updateSummary,
-    deleteSummary: state.deleteSummary,
-    setCurrentSummary: state.setCurrentSummary,
-    clearError: state.clearError,
-    setCurrentPage: state.setCurrentPage,
-    searchSummaries: state.searchSummaries,
-    refreshInBackground: state.refreshInBackground,
-  };
+  // Datos derivados
+  const summaries = useMemo(() => summariesData || [], [summariesData]);
+  
+  const currentSummary = useMemo(() => {
+    if (!currentSummaryId) return null;
+    return summaries.find(s => s.id === currentSummaryId) || null;
+  }, [currentSummaryId, summaries]);
 
-  // Datos derivados memoizados
-  const summaries = useMemo(
-    () => ids.map((id) => entities[id]).filter(Boolean),
-    [ids, entities]
-  );
+  // Funciones con interfaz compatible con la versión anterior
+  const getAllSummaries = useCallback(async (params?: Params) => {
+    await queryClient.invalidateQueries({ queryKey: ['summaries', 'list'] });
+    return summaries;
+  }, [queryClient, summaries]);
 
-  const currentSummary = useMemo(
-    () => (currentSummaryId ? entities[currentSummaryId] : null),
-    [currentSummaryId, entities]
-  );
+  const getSummaryById = useCallback(async (id: string) => {
+    if (!id) return null;
+    
+    try {
+      const { data } = await queryClient.fetchQuery({
+        queryKey: ['summaries', 'detail', id],
+        queryFn: () => summaryService.getSummaryById(id)
+      });
+      return data;
+    } catch (error) {
+      console.error('Error al obtener resumen por ID:', error);
+      return null;
+    }
+  }, [queryClient]);
 
-  // Acciones envueltas en useCallback para evitar renderizados innecesarios
-  const getAllSummaries = useCallback(
-    async (params?: {
-      page?: number;
-      limit?: number;
-      materialId?: string;
-    }) => {
-      try {
-        await actions.getAllSummaries(params);
-      } catch (error) {
-        console.error('Error al obtener resúmenes:', error);
-        throw error;
-      }
-    },
-    [actions.getAllSummaries]
-  );
+  const getSummariesByMaterial = useCallback(async (materialId: string) => {
+    if (!materialId) return [];
+    
+    try {
+      const { data } = await queryClient.fetchQuery({
+        queryKey: ['summaries', 'byMaterial', materialId],
+        queryFn: () => summaryService.getSummariesByMaterial(materialId)
+      });
+      return data;
+    } catch (error) {
+      console.error('Error al obtener resúmenes por material:', error);
+      return [];
+    }
+  }, [queryClient]);
 
-  const getSummaryById = useCallback(
-    async (id: string) => {
-      await actions.getSummaryById(id);
-      return entities[id] || null;
-    },
-    [actions.getSummaryById, entities]
-  );
+  const createSummary = useCallback(async (summary: SummaryCreateDTO) => {
+    const result = await createSummaryMutation.mutateAsync(summary);
+    return result.data;
+  }, [createSummaryMutation]);
 
-  const searchSummaries = useCallback(
-    (searchTerm: string): Summary[] => {
-      return actions.searchSummaries(searchTerm);
-    },
-    [actions.searchSummaries]
-  );
+  const updateSummary = useCallback(async (id: string, summary: SummaryUpdateDTO) => {
+    const result = await updateSummaryMutation.mutateAsync({ id, summary });
+    return result.data;
+  }, [updateSummaryMutation]);
 
-  return {
+  const deleteSummary = useCallback(async (id: string) => {
+    await deleteSummaryMutation.mutateAsync(id);
+  }, [deleteSummaryMutation]);
+
+  // Simulación de paginación para compatibilidad
+  const pagination = useMemo(() => ({
+    currentPage: 1,
+    totalPages: 1,
+    pageSize: 10
+  }), []);
+
+  const setCurrentSummary = useCallback((id: string | null) => {
+    setCurrentSummaryId(id);
+  }, []);
+
+  const clearError = useCallback(() => {
+    // No hay equivalente directo en React Query
+  }, []);
+
+  const searchSummaries = useCallback((searchTerm: string): Summary[] => {
+    if (!searchTerm) return summaries;
+    
+    const term = searchTerm.toLowerCase();
+    return summaries.filter(summary => 
+      summary.content.toLowerCase().includes(term)
+    );
+  }, [summaries]);
+
+  const refreshInBackground = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['summaries'] });
+  }, [queryClient]);
+
+  const setCurrentPage = useCallback(() => {
+    // Simulación para compatibilidad
+  }, []);
+
+  return useMemo(() => ({
     // Datos
     summaries,
     currentSummary,
     
     // Estado
     loading: {
-      isLoading: status.isLoading,
-      lastFetch: status.lastFetch,
+      isLoading,
+      lastFetch: Date.now(),
     },
-    error: status.error,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
     pagination,
     
     // Acciones
     getAllSummaries,
     getSummaryById,
-    getSummariesByMaterial: actions.getSummariesByMaterial,
-    createSummary: actions.createSummary,
-    updateSummary: actions.updateSummary,
-    deleteSummary: actions.deleteSummary,
-    setCurrentSummary: actions.setCurrentSummary,
-    setCurrentPage: actions.setCurrentPage,
-    clearError: actions.clearError,
+    getSummariesByMaterial,
+    createSummary,
+    updateSummary,
+    deleteSummary,
+    setCurrentSummary,
+    setCurrentPage,
+    clearError,
     
     // Utilidades
     searchSummaries,
-    refreshInBackground: actions.refreshInBackground,
-    hasMorePages: pagination.currentPage < pagination.totalPages,
-    canGoToNextPage: pagination.currentPage < pagination.totalPages,
-    canGoToPreviousPage: pagination.currentPage > 1,
-  };
-};
-
-// Hook para verificar si los datos están "frescos"
-export const useSummariesStatus = () => {
-  const status = useSummariesStore(state => state.status);
-  const clearError = useSummariesStore(state => state.clearError);
-
-  return {
-    isLoading: status.isLoading,
-    error: status.error,
+    refreshInBackground,
+    hasMorePages: false,
+    canGoToNextPage: false,
+    canGoToPreviousPage: false,
+  }), [
+    summaries,
+    currentSummary,
+    isLoading,
+    error,
+    pagination,
+    getAllSummaries,
+    getSummaryById,
+    getSummariesByMaterial,
+    createSummary,
+    updateSummary,
+    deleteSummary,
+    setCurrentSummary,
+    setCurrentPage,
     clearError,
-    lastFetched: status.lastFetch,
-    isFresh: Boolean(status.lastFetch && (Date.now() - status.lastFetch) < 5 * 60 * 1000) // 5 minutos
-  };
+    searchSummaries,
+    refreshInBackground
+  ]);
 };
 
-// Hook para acceder al resumen actual
+/**
+ * Hook para verificar si los datos están "frescos"
+ */
+export const useSummariesStatus = () => {
+  const { isLoading, error } = useSummariesQuery();
+
+  return useMemo(() => ({
+    isLoading,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
+    clearError: () => {},
+    lastFetched: Date.now(),
+    isFresh: true // Siempre fresco con React Query
+  }), [isLoading, error]);
+};
+
+/**
+ * Hook para acceder al resumen actual
+ */
 export const useCurrentSummary = () => {
-  const entities = useSummariesStore(state => state.entities);
-  const currentSummaryId = useSummariesStore(state => state.currentSummaryId);
-  const setCurrentSummary = useSummariesStore(state => state.setCurrentSummary);
+  const [currentSummaryId, setCurrentSummaryId] = useState<string | null>(null);
+  const { data: summaries = [] } = useSummariesQuery();
 
-  const currentSummary = useMemo(
-    () => (currentSummaryId ? entities[currentSummaryId] : null),
-    [currentSummaryId, entities]
-  );
+  const currentSummary = useMemo(() => {
+    if (!currentSummaryId) return null;
+    return summaries.find(s => s.id === currentSummaryId) || null;
+  }, [currentSummaryId, summaries]);
 
-  return { 
+  const setCurrentSummary = useCallback((id: string | null) => {
+    setCurrentSummaryId(id);
+  }, []);
+
+  return useMemo(() => ({ 
     currentSummary, 
     setCurrentSummary 
-  };
+  }), [currentSummary, setCurrentSummary]);
 };

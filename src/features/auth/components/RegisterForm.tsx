@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, useAuthActions } from "../../../hooks/useAuth";
+import { useAuth, } from "../../../hooks/useAuth";
 import { userRegisterDTO } from "../../../types/user/userRequest";
 
 interface RegisterFormProps {
@@ -9,8 +9,7 @@ interface RegisterFormProps {
 
 function RegisterForm({ setIsLoginMode }: RegisterFormProps) {
   const navigate = useNavigate();
-  const { error, isAuthenticated } = useAuth();
-  const { register, clearError } = useAuthActions();
+  const { error, isAuthenticated,register, clearError } = useAuth();
 
   const [nombre, setName] = useState("");
   const [email, setEmail] = useState("");

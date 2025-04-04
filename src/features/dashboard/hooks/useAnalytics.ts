@@ -100,7 +100,7 @@ export const useAnalytics = () => {
     if (isDataLoading) return;
     
     generateAnalyticsData();
-  }, [materials, flashcards, isDataLoading]);
+  }, []);
   
   return {
     analytics,

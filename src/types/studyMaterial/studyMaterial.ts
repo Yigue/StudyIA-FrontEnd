@@ -1,25 +1,10 @@
 import { Params } from "../api";
-import { Flashcard } from "../flashcards/flashcards";
-import { Summary } from "../summary/summary";
-import { Tag } from "../tag/tag";
+import { Flashcard, Summary, StudyMaterial } from "@/types";
 import {
   CreateMaterialDTO,
   CreateOptions,
   ProcessOptions,
 } from "./studyMaterialRequest";
-
-export interface StudyMaterial {
-  id: string;
-  title: string;
-  description: string | null;
-  file_url: string | null;
-  content: string | null;
-  userId: string; // UUID del creador
-  processingStatus?: "pending" | "completed" | "failed";
-  tags: Tag[];
-  createdAt: string; // ISO 8601
-  updatedAt: string; // ISO 8601
-}
 
 export interface MaterialActions {
   fetchMaterials: (params?:Params) => Promise<void>;
@@ -34,6 +19,6 @@ export interface MaterialActions {
   ) => Promise<{ summary: Summary | null; flashcards: Flashcard[] | null }>;
 
   deleteMaterial: (id: string) => Promise<void>;
-  setCurrentMaterial: (id: StudyMaterial) => void;
+  setCurrentMaterial: (material: StudyMaterial) => void;
   clearError: () => void;
 }

@@ -2,6 +2,54 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiResponse, ApiError } from '../../types';
 import { Params } from '../../types';
 
+// Sistema de caché para peticiones GET
+interface CacheItem<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+class ApiCache {
+  private cache: Map<string, CacheItem<ApiResponse<unknown>>> = new Map();
+  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutos en milisegundos
+
+  public get<T>(key: string): ApiResponse<T> | null {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    
+    // Verificar si el ítem ha expirado
+    if (Date.now() > item.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return item.data as ApiResponse<T>;
+  }
+
+  public set<T>(key: string, data: ApiResponse<T>, ttl = this.DEFAULT_TTL): void {
+    const now = Date.now();
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiresAt: now + ttl
+    });
+  }
+
+  public delete(key: string): void {
+    this.cache.delete(key);
+  }
+
+  public clear(): void {
+    this.cache.clear();
+  }
+
+  public generateKey(endpoint: string, params?: Params): string {
+    return `${endpoint}:${params ? JSON.stringify(params) : ''}`;
+  }
+}
+
+// Instancia singleton del caché
+export const apiCache = new ApiCache();
 
 const baseURL = import.meta.env.VITE_API_BASEURL;
 
@@ -107,16 +155,30 @@ export async function httpClient<TResponse, TRequest = null>(
     data?: TRequest;
     headers?: Record<string, string>;
     params?: Params;
-    withCredentials?: boolean; // Añadimos opción para configurar withCredentials por solicitud
+    withCredentials?: boolean;
+    cacheTime?: number; // Tiempo de caché en ms (null para no cachear)
+    skipCache?: boolean; // Opción para saltarse el caché
   } = {}
 ): Promise<ApiResponse<TResponse>> {
+  const method = options.method || 'GET';
+  
+  // Solo usar caché para peticiones GET
+  if (method === 'GET' && !options.skipCache) {
+    const cacheKey = apiCache.generateKey(endpoint, options.params);
+    const cachedData = apiCache.get<TResponse>(cacheKey);
+    
+    if (cachedData) {
+      return cachedData;
+    }
+  }
+  
   try {
     // Creamos una nueva configuración que no sobrescriba los headers de autorización
     const config: AxiosRequestConfig = {
       url: endpoint,
-      method: options.method || 'GET',
+      method,
       data: options.data,
-      withCredentials: options.withCredentials, // Usar la configuración de withCredentials si se proporciona
+      withCredentials: options.withCredentials,
       params: options.params
     };
     
@@ -129,12 +191,20 @@ export async function httpClient<TResponse, TRequest = null>(
     
     const response = await axiosInstance(config);
     
-    return {
+    const responseData: ApiResponse<TResponse> = {
       data: response.data.data,
       status: "success",
       message: response.data.message,
       meta: response.data.meta
     };
+    
+    // Guardar en caché solo si es GET y no se especificó skipCache
+    if (method === 'GET' && !options.skipCache) {
+      const cacheKey = apiCache.generateKey(endpoint, options.params);
+      apiCache.set<TResponse>(cacheKey, responseData, options.cacheTime);
+    }
+    
+    return responseData;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const apiError: ApiError = {

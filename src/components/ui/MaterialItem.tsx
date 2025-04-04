@@ -37,7 +37,8 @@ export const MaterialItem: React.FC<MaterialItemProps> = ({
   const formattedDate = React.useMemo(() => {
     try {
       return formatShortDate(material.createdAt);
-    } catch (_) {
+    } catch (error) {
+      console.error('Error al formatear la fecha:', error);
       return 'Fecha desconocida';
     }
   }, [material.createdAt]);

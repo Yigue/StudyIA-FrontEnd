@@ -1,148 +1,158 @@
-import { useState, useEffect } from "react";
-import { useMaterials } from "../../../hooks/useMaterials";
-import { useFlashcards } from "../../../hooks/useFlashcards";
-import { useSummaries } from "../../../hooks/useSummaries";
-import { StudyMaterial } from "@/types";
-
-// Definición de las opciones de procesamiento
-interface ProcessingOptions {
-  summary?: boolean;
-  flashcards?: boolean;
-}
+import { useState, useCallback, useMemo } from "react";
+import { useMaterialsQuery, useMaterialQuery, useDeleteMaterial, useProcessMaterial } from "../../../hooks/queries/useMaterialsQuery";
+import { useFlashcardsByMaterialQuery, useUpdateFlashcard } from "../../../hooks/queries/useFlashcardsQuery";
+import { useSummariesByMaterialQuery } from "../../../hooks/queries/useSummariesQuery";
+import { StudyMaterial, ApiProcessingOptions } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
- * Hook personalizado para gestionar los materiales, flashcards y resúmenes en la biblioteca
+ * Hook personalizado optimizado para gestionar materiales en la biblioteca.
+ * Utiliza React Query internamente.
  */
 export const useLibraryMaterials = () => {
-  // Estado local
+  // Estado de UI local
   const [selectedMaterial, setSelectedMaterial] = useState<StudyMaterial | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("content");
+  const [activeTab, setActiveTab] = useState<"content" | "flashcards" | "summaries">("content");
   
-  // Hooks para materiales, flashcards y resúmenes
-  const {
-    materials,
-    loading: { isLoading },
-    fetchMaterials,
-    deleteMaterial: apiDeleteMaterial,
-    processMaterial
-  } = useMaterials();
+  const queryClient = useQueryClient();
   
-  const {
-    flashcards,
-    getFlashcardsByMaterial,
-    updateFlashcard
-  } = useFlashcards();
+  // Consultas React Query
+  const { 
+    data: allMaterials = [], 
+    isLoading: materialsLoading, 
+    error: materialsError 
+  } = useMaterialsQuery();
   
-  const {
-    summaries,
-    getSummariesByMaterial
-  } = useSummaries();
-  
-  // Filtrar materiales según el término de búsqueda
-  const filteredMaterials = materials.filter(material => 
-    material.title.toLowerCase().includes(searchTerm.toLowerCase())
+  // Consultas condicionales basadas en el material seleccionado
+  const { 
+    data: materialFlashcards = [], 
+    isLoading: flashcardsLoading 
+  } = useFlashcardsByMaterialQuery(
+    selectedMaterial?.id || "", 
+    { enabled: !!selectedMaterial }
   );
   
-  // Obtener flashcards y resúmenes para el material seleccionado
-  const materialFlashcards = flashcards.filter(
-    flashcard => (flashcard.material_id) === selectedMaterial?.id
+  const { 
+    data: materialSummaries = [],
+    isLoading: summariesLoading
+  } = useSummariesByMaterialQuery(
+    selectedMaterial?.id || "",
+    { enabled: !!selectedMaterial }
   );
   
-  const materialSummaries = summaries.filter(
-    summary => (summary.material_id) === selectedMaterial?.id
+  // Mutaciones
+  const deleteMaterialMutation = useDeleteMaterial();
+  const processMaterialMutation = useProcessMaterial();
+  const updateFlashcardMutation = useUpdateFlashcard();
+  
+  // Filtrar materiales por término de búsqueda
+  const filteredMaterials = useMemo(() => 
+    allMaterials.filter(material => 
+      material.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [allMaterials, searchTerm]
   );
   
-  // Cargar flashcards y resúmenes para un material específico
-  const loadFlashcardsAndSummaries = async (materialId: string) => {
-    try {
-      await Promise.all([
-        getFlashcardsByMaterial(materialId),
-        getSummariesByMaterial(materialId)
-      ]);
-    } catch (error) {
-      console.error("Error al cargar flashcards y resúmenes:", error);
-    }
-  };
+  // Funciones de acción simplificadas
+  const fetchMaterials = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['materials'] });
+  }, [queryClient]);
   
-  // Eliminar un material
-  const deleteMaterial = async (materialId: string) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este material?")) {
-      await apiDeleteMaterial(materialId);
-      if (selectedMaterial?.id === materialId) {
-        setSelectedMaterial(null);
-      }
-      await refreshMaterials();
-    }
-  };
-
-  // Función para refrescar materiales
-  const refreshMaterials = async () => {
-    try {
-      await fetchMaterials();
-    } catch (error) {
-      console.error("Error al refrescar materiales:", error);
-    }
-  };
-  
-  // Generar contenido para un material
-  const generateContent = async (materialId: string, options: ProcessingOptions) => {
+  const loadFlashcardsAndSummaries = useCallback(async (materialId: string) => {
     if (!materialId) return;
     
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['flashcards', 'byMaterial', materialId] }),
+      queryClient.invalidateQueries({ queryKey: ['summaries', 'byMaterial', materialId] })
+    ]);
+  }, [queryClient]);
+  
+  const deleteMaterial = useCallback(async (materialId: string) => {
+    if (!materialId) return;
+    
+    if (window.confirm("¿Estás seguro de que deseas eliminar este material y sus flashcards/resúmenes asociados?")) {
+      try {
+        await deleteMaterialMutation.mutateAsync(materialId);
+        if (selectedMaterial?.id === materialId) {
+          setSelectedMaterial(null);
+        }
+      } catch (error) {
+        console.error("Error al eliminar material:", error);
+      }
+    }
+  }, [deleteMaterialMutation, selectedMaterial?.id]);
+  
+  const generateContent = useCallback(async (materialId: string, options: {
+    generateSummary: boolean;
+    generateFlashcards: boolean;
+  }) => {
+    if (!materialId) return;
+    
+    const material = allMaterials.find(m => m.id === materialId);
+    if (!material) {
+      console.error("Material no encontrado para generar contenido");
+      return;
+    }
+
+    // Convertir a formato API
+    const apiOptions: ApiProcessingOptions = {
+      generate_summary: options.generateSummary,
+      generate_flashcards: options.generateFlashcards,
+      summary_options: {}, 
+      flashcards_options: {} 
+    };
+    
     try {
-      // Adaptamos los parámetros al formato esperado por la API
-      const apiOptions = {
-        generate_summary: options.summary,
-        generate_flashcards: options.flashcards,
-        summary_options: {},
-        flashcards_options: {}
-      };
-      
-      // Simulamos que obtenemos el material primero
-      const material = materials.find(m => m.id === materialId);
-      if (!material) throw new Error("Material no encontrado");
-      
-      // Procesamos el material
-      await processMaterial(material, apiOptions);
-      
-      // Recargar flashcards y resúmenes después del procesamiento
+      await processMaterialMutation.mutateAsync({ material, options: apiOptions });
       await loadFlashcardsAndSummaries(materialId);
     } catch (error) {
       console.error("Error al generar contenido:", error);
     }
-  };
+  }, [allMaterials, processMaterialMutation, loadFlashcardsAndSummaries]);
   
-  // Cambiar la dificultad de una flashcard
-  const changeFlashcardDifficulty = async (flashcardId: string, difficulty: "easy" | "medium" | "hard") => {
+  const changeFlashcardDifficulty = useCallback(async (flashcardId: string, difficulty: string | number) => {
     try {
-      await updateFlashcard(flashcardId, { difficulty });
+      await updateFlashcardMutation.mutateAsync({ 
+        id: flashcardId, 
+        flashcard: { difficulty } 
+      });
     } catch (error) {
       console.error("Error al actualizar la dificultad:", error);
     }
-  };
+  }, [updateFlashcardMutation]);
   
-  // Abrir un archivo en una nueva pestaña
-  const viewFile = (fileUrl: string) => {
-    window.open(fileUrl, "_blank");
-  };
-  
-  // Cargar materiales al inicio
-  useEffect(() => {
-    refreshMaterials();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const viewFile = useCallback((fileUrl?: string | null) => {
+    if (fileUrl) {
+      window.open(fileUrl, "_blank", "noopener,noreferrer");
+    } else {
+      console.warn("Intento de ver archivo sin URL");
+    }
   }, []);
   
+  // Estado de carga combinado
+  const isProcessing = useMemo(() => 
+    processMaterialMutation.isPending, 
+    [processMaterialMutation.isPending]
+  );
+  
+  // Único objeto memoizado para el return
   return {
-    // Estado
+    // Datos
     materials: filteredMaterials,
     selectedMaterial,
     materialFlashcards,
     materialSummaries,
+    
+    // Estado UI
     searchTerm,
     activeTab,
-    isProcessing: isLoading,
-    uploadProgress: 0, // Valor por defecto
-    materialsLoading: isLoading,
+    
+    // Estado de carga
+    isProcessing, 
+    uploadProgress: 0, // No disponible directamente en React Query
+    materialsLoading,
+    error: materialsError instanceof Error ? materialsError.message : 
+           typeof materialsError === 'string' ? materialsError : null,
     
     // Setters
     setSelectedMaterial,
@@ -150,7 +160,6 @@ export const useLibraryMaterials = () => {
     setActiveTab,
     
     // Acciones
-    refreshMaterials,
     loadFlashcardsAndSummaries,
     deleteMaterial,
     generateContent,

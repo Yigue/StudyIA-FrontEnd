@@ -1,58 +1,70 @@
-import { useState, useCallback } from "react";
-import { useMaterials } from "./useMaterials";
-import { useFlashcards } from "./useFlashcards";
-import { useSummaries } from "./useSummaries";
-import { useTagsActions } from "./useTags";
+import { useState, useCallback, useMemo } from "react";
+import { useMaterialsQuery } from "./queries/useMaterialsQuery";
+import { useFlashcardsQuery } from "./queries/useFlashcardsQuery";
+import { useSummariesQuery } from "./queries/useSummariesQuery";
+import { useTagsQuery } from "./queries/useTagsQuery";
+import { useQueryClient } from "@tanstack/react-query";
 
-
+/**
+ * Hook que centraliza el acceso a los datos principales de la aplicación
+ * Usando React Query internamente pero manteniendo compatibilidad
+ */
 const useApp = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const { fetchMaterials, materials } = useMaterials();
-  const { getAllFlashcards, flashcards } = useFlashcards();
-  const { getAllSummaries, summaries } = useSummaries();
-  const { getAllTags } = useTagsActions();
+  // Usar hooks de React Query directamente
+  const { data: materials = [], isLoading: materialsLoading } = useMaterialsQuery();
+  const { data: flashcards = [], isLoading: flashcardsLoading } = useFlashcardsQuery();
+  const { data: summaries = [], isLoading: summariesLoading } = useSummariesQuery();
+  const { data: tags = [], isLoading: tagsLoading } = useTagsQuery();
+  
+  // Determinar estado de carga general
+  const isLoading = materialsLoading || flashcardsLoading || summariesLoading || tagsLoading;
+  
   // Función de carga unificada
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
     setError(null);
     try {
-      // Cargar datos en paralelo
+      // Refrescar las consultas principales
       await Promise.all([
-        fetchMaterials(),
-        getAllFlashcards(),
-        getAllSummaries(),
-        getAllTags()
-    
+        queryClient.invalidateQueries({ queryKey: ['materials'] }),
+        queryClient.invalidateQueries({ queryKey: ['flashcards'] }),
+        queryClient.invalidateQueries({ queryKey: ['summaries'] }),
+        queryClient.invalidateQueries({ queryKey: ['tags'] })
       ]);
     } catch (err: unknown) {
-      // Manejar el error de forma segura
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
-  }, [fetchMaterials, getAllFlashcards, getAllSummaries,getAllTags]);
+  }, [queryClient]);
 
-  // Función para refrescar los datos
+  // Función para refrescar los datos (alias)
   const onRefresh = useCallback(() => {
     fetchData();
   }, [fetchData]);
 
- 
-
-  return {
+  // Devolver un objeto memoizado para evitar re-renderizados innecesarios
+  return useMemo(() => ({
     isLoading,
-    setIsLoading,
     error,
     setError,
     fetchData,
     onRefresh,
     materials,
     flashcards,
-    summaries
-  };
+    summaries,
+    tags
+  }), [
+    isLoading, 
+    error, 
+    fetchData, 
+    onRefresh, 
+    materials, 
+    flashcards, 
+    summaries,
+    tags
+  ]);
 };
 
 export default useApp;

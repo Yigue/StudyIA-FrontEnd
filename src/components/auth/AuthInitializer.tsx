@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { useAuthActions, useAuth } from '../../hooks/useAuth';
+import {  useAuth } from '../../hooks/useAuth';
 
 export const AuthInitializer = () => {
-  const { checkAuth } = useAuthActions();
-  const { isAuthenticated } = useAuth();
+
+  const { isAuthenticated,checkAuth } = useAuth();
   
   // Usar una referencia para rastrear si ya se ha hecho la verificación
   const hasCheckedAuth = useRef(false);

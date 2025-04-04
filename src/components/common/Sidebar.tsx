@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Book, Settings, LogOut, Brain } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
-import { useAuthActions } from "../../hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 interface SidebarProps {
   activeTab: string;
@@ -11,7 +11,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
-  const { logout } = useAuthActions();
+  const { logout } = useAuth();
 
   const menuItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },

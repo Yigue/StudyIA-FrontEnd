@@ -1,64 +1,91 @@
-import { useCallback } from 'react';
-import { useTagsStore } from '../store/tags.store';
-import { Tag } from '../types/tag/tag';
+import { useCallback, useMemo } from 'react';
+import { useTagsQuery, useCreateTag, useUpdateTag, useDeleteTag, useFilterTags } from './queries/useTagsQuery';
+import { TagCreateDTO, TagUpdateDTO } from '@/types';
+import { useQueryClient } from '@tanstack/react-query';
 
-// Hook para acceder a las etiquetas
+/**
+ * Hook para acceder y manipular etiquetas, usando React Query internamente
+ * pero manteniendo la interfaz compatible con la versión anterior.
+ */
 export const useTags = () => {
-  const tags = useTagsStore((state) => state.tags);
-  const isLoading = useTagsStore((state) => state.isLoading);
-  const error = useTagsStore((state) => state.error);
-  const lastFetched = useTagsStore((state) => state.lastFetched);
+  const queryClient = useQueryClient();
+  
+  // Queries
+  const { data: tagsData, isLoading, error } = useTagsQuery();
+  
+  // Mutaciones
+  const createTagMutation = useCreateTag();
+  const updateTagMutation = useUpdateTag();
+  const deleteTagMutation = useDeleteTag();
+  
+  // Filtro local
+  const filterTagsFn = useFilterTags();
 
-  return {
+  // Datos derivados
+  const tags = useMemo(() => tagsData || [], [tagsData]);
+
+  // Funciones con interfaz compatible con la versión anterior
+  const getAllTags = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['tags'] });
+    return tags;
+  }, [queryClient, tags]);
+
+  const createTag = useCallback(async (tag: TagCreateDTO) => {
+    const result = await createTagMutation.mutateAsync(tag);
+    return result.data;
+  }, [createTagMutation]);
+
+  const updateTag = useCallback(async (id: string, tag: TagUpdateDTO) => {
+    const result = await updateTagMutation.mutateAsync({ id, tag });
+    return result.data;
+  }, [updateTagMutation]);
+
+  const deleteTag = useCallback(async (id: string) => {
+    await deleteTagMutation.mutateAsync(id);
+  }, [deleteTagMutation]);
+
+  const clearError = useCallback(() => {
+    // No hay equivalente directo en React Query
+  }, []);
+
+  const filterTags = useCallback((searchTerm: string) => {
+    return filterTagsFn(searchTerm);
+  }, [filterTagsFn]);
+
+  const getTagById = useCallback((id: string) => {
+    return tags.find(tag => tag.id === id);
+  }, [tags]);
+
+  // Retornar objeto con misma estructura que el hook original
+  return useMemo(() => ({
+    // Datos
     tags,
+    
+    // Estado
     isLoading,
-    error,
-    lastFetched
-  };
-};
-
-// Hook para acceder a las acciones de etiquetas
-export const useTagsActions = () => {
-  const getAllTags = useTagsStore((state) => state.getAllTags);
-  const createTag = useTagsStore((state) => state.createTag);
-  const updateTag = useTagsStore((state) => state.updateTag);
-  const deleteTag = useTagsStore((state) => state.deleteTag);
-  const clearError = useTagsStore((state) => state.clearError);
-  const filterTags = useTagsStore((state) => state.filterTags);
-  const getTagById = useTagsStore((state) => state.getTagById);
-
-  // Función para buscar etiquetas por nombre (ahora usa la implementación del store)
-  const searchTags = useCallback(
-    (searchTerm: string): Tag[] => {
-      return filterTags(searchTerm);
-    },
-    [filterTags]
-  );
-
-  return {
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
+    lastFetched: Date.now(),
+    
+    // Acciones
     getAllTags,
     createTag,
     updateTag,
     deleteTag,
     clearError,
-    searchTags,
+    
+    // Utilidades
+    filterTags,
     getTagById
-  };
-};
-
-// Hook para acceder al estado de carga de etiquetas
-export const useTagsStatus = () => {
-  const isLoading = useTagsStore((state) => state.isLoading);
-  const error = useTagsStore((state) => state.error);
-  const clearError = useTagsStore((state) => state.clearError);
-  const lastFetched = useTagsStore((state) => state.lastFetched);
-
-  return {
-    isLoading,
+  }), [
+    tags,
+    isLoading, 
     error,
+    getAllTags,
+    createTag,
+    updateTag,
+    deleteTag,
     clearError,
-    lastFetched,
-    // Función para comprobar si los datos están "frescos"
-    isFresh: Boolean(lastFetched && (Date.now() - lastFetched) < 5 * 60 * 1000) // 5 minutos
-  };
+    filterTags,
+    getTagById
+  ]);
 };
