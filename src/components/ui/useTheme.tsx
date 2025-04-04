@@ -9,7 +9,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider = ({ children}) => {
+export const ThemeProvider = ({ children}: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';

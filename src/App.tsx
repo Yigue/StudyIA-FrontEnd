@@ -6,9 +6,9 @@ import { useAuth } from "./hooks/useAuth";
 import MainLayout from "./components/layouts/MainLayout";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import AuthPage from "./features/auth/AuthPage";
-import { LibraryPage } from "./features/library/LibraryPage";
 import { ToastContainer } from './components/ui/Toast';
 import { useTheme } from './components/ui/useTheme';
+import LibraryPage from "./features/library/LibraryPage";
 
 // Importación dinámica de páginas para mejor rendimiento
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));

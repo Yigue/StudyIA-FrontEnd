@@ -92,7 +92,13 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
         });
 
         try {
-          const { data, meta } = await getAllStudyMaterials(params);
+          // Asegurarse de que los tags sean un array si vienen como string
+          const processedParams = params ? {
+            ...params,
+            tags: params.tags ? (Array.isArray(params.tags) ? params.tags : [params.tags]) : undefined
+          } : undefined;
+          
+          const { data, meta } = await getAllStudyMaterials(processedParams);
 
           // Normalizar datos para almacenamiento eficiente
           const normalized = data.reduce(
