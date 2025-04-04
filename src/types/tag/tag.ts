@@ -5,5 +5,5 @@ export interface Tag {
   userId: string; // UUID del creador
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
-  count?: number; // Número de elementos con esta etiqueta
+  count?: number;
 }

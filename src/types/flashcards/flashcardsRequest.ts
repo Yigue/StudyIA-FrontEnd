@@ -1,8 +1,8 @@
-export interface ReviewDTO{
-  difficulty: number;
-  next_review: string;
-}
+import { Tag } from "../tag/tag";
 
+export interface ReviewDTO {
+  difficulty: "again" | "hard" | "good" | "easy";
+}
 
 export enum DifficultyLevel {
   Easy = "easy",
@@ -14,15 +14,16 @@ export interface FlashcardCreateDTO {
   material_id: string;
   question: string;
   answer: string;
+  type: "text" | "image";
   difficulty?: "easy" | "medium" | "hard";
-  tags?: string[]; // Array de IDs de etiquetas
+  tags?: Tag[]; // Array de IDs de etiquetas
 }
 
 export interface FlashcardUpdateDTO {
   question?: string;
   answer?: string;
   difficulty?: "easy" | "medium" | "hard";
-  tags?: string[]; // Array de IDs de etiquetas
+  tags?: Tag[]; // Array de IDs de etiquetas // Array de IDs de etiquetas
 }
 
 export interface FlashcardReviewDTO {

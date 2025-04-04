@@ -54,7 +54,7 @@ interface FlashcardActions {
     archived?: boolean;
   }) => Promise<void>;
   getFlashcardById: (id: string) => Promise<void>;
-  getFlashcardsByMaterial: (materialId: string) => Promise<void>;
+  getFlashcardsByMaterial: (materialId: string) => Promise<Flashcard[]>;
   getFlashcardsForReview: (params?: {
     limit?: number;
     difficulty?: "easy" | "medium" | "hard";
@@ -75,7 +75,9 @@ interface FlashcardActions {
   setCurrentFlashcard: (id: string | null) => void;
   setCurrentPage: (page: number) => void;
   clearError: () => void;
-  filterByDifficulty: (difficulty: "easy" | "medium" | "hard" | null) => Flashcard[];
+  filterByDifficulty: (
+    difficulty: "easy" | "medium" | "hard" | null
+  ) => Flashcard[];
   searchFlashcards: (searchTerm: string) => Flashcard[];
   refreshInBackground: () => Promise<void>;
 }
@@ -123,7 +125,9 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
         });
 
         try {
-          const { data, meta } = await flashcardService.getAllFlashcards(params);
+          const { data, meta } = await flashcardService.getAllFlashcards(
+            params
+          );
           if (!data) throw new Error("No se recibieron datos válidos");
 
           const flashcardsArray = Array.isArray(data) ? data : [data];
@@ -206,46 +210,38 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
       },
 
       getFlashcardsByMaterial: async (materialId) => {
-        const cacheKey = materialId;
-        const cached = get().materialCache.get(cacheKey);
-
-        if (cached && !get().materialCache.isExpired(cacheKey)) {
-          set((state) => {
-            state.entities = { ...state.entities, ...cached.entities };
-            state.ids = cached.ids;
-            state.status.lastFetch = Date.now();
-          });
-          return;
-        }
-
-        set((state) => {
-          state.status.isLoading = true;
-          state.status.error = null;
-        });
-
         try {
-          const { data } = await flashcardService.getFlashcardsByMaterial(materialId);
-          if (!data) throw new Error("No se recibieron datos válidos");
+          const cacheKey = materialId;
+          const cached = get().materialCache.get(cacheKey);
+          
+          if (cached && !get().materialCache.isExpired(cacheKey)) {
+            const cachedFlashcards = get()
+              .ids.map((id) => cached.entities[id])
+              .filter((flashcard) => flashcard.material_id === materialId);
+            return cachedFlashcards;
+          }
 
-          const flashcardsArray = Array.isArray(data) ? data : [data];
-          const normalized = flashcardsArray.reduce(
-            (acc, flashcard) => {
-              acc.entities[flashcard.id] = flashcard;
-              acc.ids.push(flashcard.id);
-              return acc;
-            },
-            { entities: {} as Record<string, Flashcard>, ids: [] as string[] }
-          );
+          // Primero, filtrar las flashcards existentes por materialId
+          const existingFlashcards = get()
+            .ids.map((id) => get().entities[id])
+            .filter((flashcard) => flashcard.material_id === materialId);
+
+          if (existingFlashcards.length > 0) {
+            return existingFlashcards;
+          }
+
+       
 
           set((state) => {
-            state.entities = { ...state.entities, ...normalized.entities };
-            state.ids = normalized.ids;
-            state.status.lastFetch = Date.now();
-            state.materialCache.set(cacheKey, {
-              entities: normalized.entities,
-              ids: normalized.ids,
-            });
+            state.status.isLoading = true;
+            state.status.error = null;
           });
+
+          const { data } = await flashcardService.getFlashcardsByMaterial(
+            materialId
+          );
+          if (!data) throw new Error("No se recibieron datos válidos");
+          return data;
         } catch (error) {
           set((state) => {
             state.status.error =
@@ -253,6 +249,7 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
                 ? error.message
                 : "Error al cargar las flashcards del material";
           });
+          return [];
         } finally {
           set((state) => {
             state.status.isLoading = false;
@@ -279,7 +276,9 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
         });
 
         try {
-          const { data } = await flashcardService.getFlashcardsForReview(params);
+          const { data } = await flashcardService.getFlashcardsForReview(
+            params
+          );
           if (!data) throw new Error("No se recibieron datos válidos");
 
           const flashcardsArray = Array.isArray(data) ? data : [data];
@@ -316,7 +315,9 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
       },
 
       getFlashcardsForReviewMaterial: async (materialId, params) => {
-        const cacheKey = `review_${materialId}_${get().reviewCache.generateKey(params || {})}`;
+        const cacheKey = `review_${materialId}_${get().reviewCache.generateKey(
+          params || {}
+        )}`;
         const cached = get().reviewCache.get(cacheKey);
 
         if (cached && !get().reviewCache.isExpired(cacheKey)) {
@@ -334,10 +335,11 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
         });
 
         try {
-          const { data } = await flashcardService.getFlashcardsForReviewMaterial(
-            materialId,
-            params
-          );
+          const { data } =
+            await flashcardService.getFlashcardsForReviewMaterial(
+              materialId,
+              params
+            );
           if (!data) throw new Error("No se recibieron datos válidos");
 
           const flashcardsArray = Array.isArray(data) ? data : [data];
@@ -388,7 +390,7 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
               ...state.entities[id],
               lastReviewed: data.lastReviewed,
             };
-            
+
             // Invalidar cachés relevantes
             state.cache.invalidate(/.*/);
             state.materialCache.invalidate(/.*/);
@@ -421,13 +423,13 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
           set((state) => {
             state.entities[data.id] = data;
             state.ids.push(data.id);
-            
+
             // Invalidar cachés
             state.cache.invalidate(/.*/);
             state.materialCache.invalidate(/.*/);
             state.reviewCache.invalidate(/.*/);
           });
-          
+
           return data;
         } catch (error) {
           set((state) => {
@@ -451,12 +453,15 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
         });
 
         try {
-          const { data } = await flashcardService.updateFlashcard(id, flashcard);
+          const { data } = await flashcardService.updateFlashcard(
+            id,
+            flashcard
+          );
           if (!data) throw new Error("Error al actualizar la flashcard");
 
           set((state) => {
             state.entities[id] = data;
-            
+
             // Invalidar cachés
             state.cache.invalidate(/.*/);
             state.materialCache.invalidate(/.*/);
@@ -487,12 +492,14 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
 
           set((state) => {
             delete state.entities[id];
-            state.ids = state.ids.filter((flashcardId: string) => flashcardId !== id);
-            
+            state.ids = state.ids.filter(
+              (flashcardId: string) => flashcardId !== id
+            );
+
             if (state.currentFlashcardId === id) {
               state.currentFlashcardId = null;
             }
-            
+
             // Invalidar cachés
             state.cache.invalidate(/.*/);
             state.materialCache.invalidate(/.*/);
@@ -520,11 +527,12 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
 
         try {
           const { data } = await flashcardService.toggleArchiveFlashcard(id);
-          if (!data) throw new Error("Error al archivar/desarchivar la flashcard");
+          if (!data)
+            throw new Error("Error al archivar/desarchivar la flashcard");
 
           set((state) => {
             state.entities[id] = data;
-            
+
             // Invalidar cachés
             state.cache.invalidate(/.*/);
             state.materialCache.invalidate(/.*/);
@@ -563,22 +571,23 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
       },
 
       filterByDifficulty: (difficulty) => {
-        if (!difficulty) return get().ids.map(id => get().entities[id]);
-        
-        return get().ids
-          .map(id => get().entities[id])
-          .filter(flashcard => flashcard.difficulty === difficulty);
+        if (!difficulty) return get().ids.map((id) => get().entities[id]);
+
+        return get()
+          .ids.map((id) => get().entities[id])
+          .filter((flashcard) => flashcard.difficulty === difficulty);
       },
 
       searchFlashcards: (searchTerm) => {
-        if (!searchTerm) return get().ids.map(id => get().entities[id]);
-        
+        if (!searchTerm) return get().ids.map((id) => get().entities[id]);
+
         const term = searchTerm.toLowerCase();
-        return get().ids
-          .map(id => get().entities[id])
-          .filter(flashcard => 
-            flashcard.question.toLowerCase().includes(term) ||
-            flashcard.answer.toLowerCase().includes(term)
+        return get()
+          .ids.map((id) => get().entities[id])
+          .filter(
+            (flashcard) =>
+              flashcard.question.toLowerCase().includes(term) ||
+              flashcard.answer.toLowerCase().includes(term)
           );
       },
 
@@ -586,9 +595,9 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
         try {
           const { data, meta } = await flashcardService.getAllFlashcards({
             page: get().pagination.currentPage,
-            limit: get().pagination.pageSize
+            limit: get().pagination.pageSize,
           });
-          
+
           if (!data) return;
 
           const flashcardsArray = Array.isArray(data) ? data : [data];
@@ -612,9 +621,12 @@ export const useFlashcardsStore = create<FlashcardState & FlashcardActions>()(
             state.status.lastFetch = Date.now();
           });
         } catch (error) {
-          console.error('Error al actualizar flashcards en segundo plano:', error);
+          console.error(
+            "Error al actualizar flashcards en segundo plano:",
+            error
+          );
         }
-      }
+      },
     }))
   )
 );

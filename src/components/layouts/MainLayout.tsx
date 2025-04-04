@@ -10,6 +10,8 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, setActiveTab }) => {
   const { isLoading } = useDashboardData();
+
+  
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />

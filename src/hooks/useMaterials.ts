@@ -1,110 +1,135 @@
-import { useState, useMemo, useCallback } from "react";
-import { useMaterialStore } from "../store/materials.store";
-import { Params } from "../types/api";
+import { useEffect, useRef } from 'react';
+import { useMaterialStore } from '../store/materials.store';
+import { Params } from '../types/api';
 
 /**
  * Hook para acceder y manipular materiales de estudio.
  * Implementa selección optimizada y memoización para evitar renderizados innecesarios.
  */
 export const useMaterials = () => {
-  // Usar selectores específicos con shallow comparison
-  const entities = useMaterialStore((state) => state.entities);
-  const ids = useMaterialStore((state) => state.ids);
-  const currentMaterialId = useMaterialStore(
-    (state) => state.currentMaterialId
-  );
-  const status = useMaterialStore((state) => state.status);
-  const pagination = useMaterialStore((state) => state.pagination);
+  // Referencia para controlar si ya se ha hecho la carga inicial
+  const initialLoadDone = useRef(false);
 
-  // Acciones del store
-  const fetchMaterialsAction = useMaterialStore(
-    (state) => state.fetchMaterials
-  );
-  const getMaterialByIdAction = useMaterialStore(
-    (state) => state.getMaterialById
-  );
-  const createMaterial = useMaterialStore((state) => state.createMaterial);
-  const processMaterial = useMaterialStore((state) => state.processMaterial);
-  const deleteMaterial = useMaterialStore((state) => state.deleteMaterial);
-  const setCurrentMaterial = useMaterialStore(
-    (state) => state.setCurrentMaterial
-  );
-  const clearError = useMaterialStore((state) => state.clearError);
+  // Selectores optimizados de datos del store
+  const state = useMaterialStore();
+  const { 
+    entities,
+    ids, 
+    currentMaterialId, 
+    status, 
+    pagination,
+  } = state;
 
-  // Estado local para gestionar errores adicionales
-  const [error, setError] = useState<string | null>(null);
+  // Acciones desde el store
+  const actions = {
+    fetchMaterials: state.fetchMaterials,
+    getMaterialById: state.getMaterialById,
+    createMaterial: state.createMaterial,
+    processMaterial: state.processMaterial,
+    deleteMaterial: state.deleteMaterial,
+    setCurrentMaterial: state.setCurrentMaterial,
+    clearError: state.clearError,
+  };
 
-  // Datos derivados mediante memoización
-  const materials = useMemo(() => {
-    return ids.map((id) => entities[id]).filter(Boolean);
-  }, [ids, entities]);
+  // Datos derivados sin memoización
+  const materials = ids.map((id) => entities[id]).filter(Boolean);
+  const currentMaterial = currentMaterialId ? entities[currentMaterialId] : null;
 
-  const currentMaterial = useMemo(
-    () => (currentMaterialId ? entities[currentMaterialId] : null),
-    [currentMaterialId, entities]
-  );
+  // Funciones simples sin useCallback
+  const fetchMaterials = async (params?: Params) => {
+    try {
+      await actions.fetchMaterials(params);
+    } catch (error) {
+      console.error('Error al obtener materiales:', error);
+      throw error;
+    }
+  };
 
-  // Métodos envueltos en useCallback para evitar re-renderizados innecesarios
-  const fetchMaterials = useCallback(
-    async (params?: Params) => {
-      try {
-        await fetchMaterialsAction(params);
-        setError(null);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setError("Error al cargar los materiales");
-      }
-    },
-    [fetchMaterialsAction]
-  );
+  const getMaterialById = async (id: string) => {
+    await actions.getMaterialById(id);
+    return entities[id] || null;
+  };
 
-  const getMaterialById = useCallback(
-    async (id: string) => {
-      await getMaterialByIdAction(id);
-      return entities[id] || null;
-    },
-    [getMaterialByIdAction, entities]
-  );
+  // Efecto para cargar datos iniciales una sola vez con seguridad adicional
+  useEffect(() => {
+    // Evitar bucles infinitos y cargas múltiples
+    if (initialLoadDone.current) {
+      return;
+    }
 
-  // Propiedades derivadas memoizadas
-  const paginationHelpers = useMemo(
-    () => ({
-      hasMorePages: pagination.currentPage < pagination.totalPages,
-      canGoToNextPage: pagination.currentPage < pagination.totalPages,
-      canGoToPreviousPage: pagination.currentPage > 1,
-    }),
-    [pagination]
-  );
+    // Solo cargar si no hay datos o si han pasado más de 5 minutos
+    const shouldFetch = 
+      ids.length === 0 || 
+      !status.lastFetch || 
+      (Date.now() - status.lastFetch > 5 * 60 * 1000);
+    
+    if (shouldFetch) {
+      fetchMaterials().then(() => {
+        initialLoadDone.current = true;
+      });
+    } else {
+      initialLoadDone.current = true;
+    }
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Sin dependencias para evitar bucles
 
-  const loadingStatus = useMemo(
-    () => ({
+  return {
+    // Datos
+    materials,
+    currentMaterial,
+    
+    // Estado
+    loading: {
       isLoading: status.isLoading,
       uploadProgress: status.uploadProgress,
       processingStatus: status.processingStatus,
-    }),
-    [status]
-  );
-
-  return {
-    // Datos principales
-    materials,
-    currentMaterial,
-
-    // Estado de carga
-    loading: loadingStatus,
-    error: error || status.error,
-
-    // Información de paginación
+    },
+    error: status.error,
     pagination,
-    ...paginationHelpers,
-
+    
     // Acciones
     fetchMaterials,
     getMaterialById,
-    createMaterial,
-    processMaterial,
-    deleteMaterial,
-    setCurrentMaterial,
+    createMaterial: actions.createMaterial,
+    processMaterial: actions.processMaterial,
+    deleteMaterial: actions.deleteMaterial,
+    setCurrentMaterial: actions.setCurrentMaterial,
+    clearError: actions.clearError,
+    
+    // Utilidades
+    hasMorePages: pagination.currentPage < pagination.totalPages,
+    canGoToNextPage: pagination.currentPage < pagination.totalPages,
+    canGoToPreviousPage: pagination.currentPage > 1,
+  };
+};
+
+// Hook para verificar si los datos están "frescos"
+export const useMaterialsStatus = () => {
+  const status = useMaterialStore(state => state.status);
+  const clearError = useMaterialStore(state => state.clearError);
+
+  return {
+    isLoading: status.isLoading,
+    uploadProgress: status.uploadProgress,
+    processingStatus: status.processingStatus,
+    error: status.error,
     clearError,
+    lastFetched: status.lastFetch,
+    isFresh: Boolean(status.lastFetch && (Date.now() - status.lastFetch) < 5 * 60 * 1000) // 5 minutos
+  };
+};
+
+// Hook para acceder al material actual
+export const useCurrentMaterial = () => {
+  const entities = useMaterialStore(state => state.entities);
+  const currentMaterialId = useMaterialStore(state => state.currentMaterialId);
+  const setCurrentMaterial = useMaterialStore(state => state.setCurrentMaterial);
+
+  const currentMaterial = currentMaterialId ? entities[currentMaterialId] : null;
+
+  return { 
+    currentMaterial, 
+    setCurrentMaterial 
   };
 };

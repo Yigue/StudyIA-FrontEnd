@@ -6,30 +6,28 @@ export interface Flashcard {
   answer: string;
   difficulty: "easy" | "medium" | "hard";
   tags: Tag[];
-  archived: boolean;
-  materialId: string; // UUID del material
-  userId: string; // UUID del creador
-  lastReviewed: string | null; // ISO 8601
-  createdAt: string; // ISO 8601
-  updatedAt: string; // ISO 8601
-  material?: {
-    id: string;
-    title: string;
-  };
-  reviews?: Array<{
-    id: string;
-    rating: number;
-    notes: string;
-    createdAt: string;
-  }>;
+  active: boolean;
+  type: TagType;
+  material_id: string; // UUID del material
+  next_review: string | null; // ISO 8601
+  last_reviewed: string | null; // ISO 86017
+  interval: number;
+  repetitions: number;
+  ease_factor: number;
+  created_at: string; // ISO 8601
+  updated_at: string; // ISO 8601
+
 }
 
-export interface FlashcardReview {
-  id: string;
-  rating: number; // 1-5
-  notes: string | null;
-  flashcardId: string;
-  userId: string;
-  createdAt: string; // ISO 8601
+
+export enum TagType {
+  Text = "text",
+  Image = "image",
+  Audio = "audio",
+  Video = "video",
+  Document = "document",
+  Link = "link",
+  Other = "other",
 }
+
 

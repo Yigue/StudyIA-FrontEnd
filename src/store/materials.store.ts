@@ -3,20 +3,15 @@ import {
   MaterialActions,
   StudyMaterial,
 } from "../types/studyMaterial/studyMaterial";
-import {
-  TextMaterialDTO,
-  FileMaterialDTO,
-} from "../types/studyMaterial/studyMaterialRequest";
 import { immer } from "zustand/middleware/immer";
 import { devtools } from "zustand/middleware";
 import {
   getAllStudyMaterials,
   getMaterialById,
-  createTextMaterial,
-  createFileMaterial,
   generateSummary,
   generateFlashcards,
   deleteMaterial,
+  uploadMaterial,
 } from "../services/studyMaterial/studyMaterialService";
 import { CacheManager } from "../services/cache/cacheManager";
 
@@ -78,9 +73,9 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
       fetchMaterials: async (params) => {
         const cacheKey = get().cache.generateKey({});
         const cached = get().cache.get(cacheKey);
-        
+
         // Usar caché si está disponible y no expirada
-        if (cached && !get().cache.isExpired(cacheKey)) { 
+        if (cached && !get().cache.isExpired(cacheKey)) {
           set((state) => {
             state.entities = { ...state.entities, ...cached.entities };
             state.ids = Array.from(new Set([...state.ids, ...cached.ids]));
@@ -95,12 +90,10 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
           state.status.isLoading = true;
           state.status.error = null;
         });
-        
+
         try {
           const { data, meta } = await getAllStudyMaterials(params);
-         
-      
-          
+
           // Normalizar datos para almacenamiento eficiente
           const normalized = data.reduce(
             (acc, material) => {
@@ -113,17 +106,17 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
               ids: [] as string[],
             }
           );
-         
 
-          
           // Actualizar estado y caché
           set((state) => {
             // Crear nuevos objetos para asegurar la actualización
             const newEntities = { ...state.entities };
             Object.assign(newEntities, normalized.entities);
-            
-            const newIds = Array.from(new Set([...state.ids, ...normalized.ids]));
-            
+
+            const newIds = Array.from(
+              new Set([...state.ids, ...normalized.ids])
+            );
+
             state.entities = newEntities;
             state.ids = newIds;
             state.pagination = {
@@ -204,24 +197,11 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
         });
 
         try {
-          if (options.type === "text") {
-            const newMaterial = await createTextMaterial(
-              material as TextMaterialDTO
-            );
-            if (!newMaterial) throw new Error("Error al crear el material");
-            set((state) => {
-              state.entities[newMaterial.data!.id] = newMaterial.data!;
-              state.ids.push(newMaterial.data!.id);
-              state.currentMaterialId = newMaterial.data!.id;
-              state.status.uploadProgress = 100;
-              state.cache.invalidate(/.*/); // Invalidar toda la caché
-            });
-            return newMaterial.data!;
-          }
-          const newMaterial = await createFileMaterial(
-            material as FileMaterialDTO
-          );
+          material.type = options.type;
+          
+          const newMaterial = await uploadMaterial(material);
           if (!newMaterial) throw new Error("Error al crear el material");
+
           set((state) => {
             state.entities[newMaterial.data!.id] = newMaterial.data!;
             state.ids.push(newMaterial.data!.id);
@@ -244,8 +224,8 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
           });
         }
       },
-      
-      // Acciones de procesamiento 
+
+      // Acciones de procesamiento
       processMaterial: async (material, options) => {
         set((state) => {
           state.status.isLoading = true;
@@ -272,7 +252,10 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
             state.cache.invalidate(/.*/); // Invalidar toda la caché
           });
 
-          return { summary: summary?.data || null, flashcards: flashcards?.data || null };
+          return {
+            summary: summary?.data || null,
+            flashcards: flashcards?.data || null,
+          };
         } catch (error) {
           set((state) => {
             state.status.error =
@@ -288,7 +271,7 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
           });
         }
       },
-      
+
       // Acciones de eliminación
       deleteMaterial: async (id) => {
         set((state) => {
@@ -336,20 +319,19 @@ export const useMaterialStore = create<MaterialState & MaterialActions>()(
         });
       },
     })),
-    
+
     { name: "MaterialStore" }
   )
 );
 
 // Selectores optimizados para evitar re-renderizados innecesarios
-export const selectAllMaterials = (state: MaterialState) => 
-  state.ids.map(id => state.entities[id]);
+export const selectAllMaterials = (state: MaterialState) =>
+  state.ids.map((id) => state.entities[id]);
 
-export const selectCurrentMaterial = (state: MaterialState) => 
+export const selectCurrentMaterial = (state: MaterialState) =>
   state.currentMaterialId ? state.entities[state.currentMaterialId] : null;
 
-export const selectPagination = (state: MaterialState) => 
-  state.pagination;
+export const selectPagination = (state: MaterialState) => state.pagination;
 
 export const selectLoadingStatus = (state: MaterialState) => ({
   isLoading: state.status.isLoading,

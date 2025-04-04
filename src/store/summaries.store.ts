@@ -44,7 +44,7 @@ interface SummaryActions {
     materialId?: string;
   }) => Promise<void>;
   getSummaryById: (id: string) => Promise<void>;
-  getSummariesByMaterial: (materialId: string) => Promise<void>;
+  getSummariesByMaterial: (materialId: string) => Promise<Summary[]>;
   createSummary: (summary: SummaryCreateDTO) => Promise<Summary | null>;
   updateSummary: (id: string, summary: SummaryUpdateDTO) => Promise<void>;
   deleteSummary: (id: string) => Promise<void>;
@@ -180,46 +180,38 @@ export const useSummariesStore = create<SummaryState & SummaryActions>()(
       },
 
       getSummariesByMaterial: async (materialId) => {
-        const cacheKey = materialId;
-        const cached = get().materialCache.get(cacheKey);
-
-        if (cached && !get().materialCache.isExpired(cacheKey)) {
-          set((state) => {
-            state.entities = { ...state.entities, ...cached.entities };
-            state.ids = cached.ids;
-            state.status.lastFetch = Date.now();
-          });
-          return;
-        }
-
-        set((state) => {
-          state.status.isLoading = true;
-          state.status.error = null;
-        });
-
         try {
-          const { data } = await summaryService.getSummariesByMaterial(materialId);
-          if (!data) throw new Error("No se recibieron datos válidos");
+          const cacheKey = materialId;
+          const cached = get().materialCache.get(cacheKey);
+          if (cached && !get().materialCache.isExpired(cacheKey)) {
+            const cachedSummaries = get()
+              .ids.map((id) => cached.entities[id])
+              .filter((summary) => summary.material_id === materialId);
+            return cachedSummaries;
+          }
 
-          const summariesArray = Array.isArray(data) ? data : [data];
-          const normalized = summariesArray.reduce(
-            (acc, summary) => {
-              acc.entities[summary.id] = summary;
-              acc.ids.push(summary.id);
-              return acc;
-            },
-            { entities: {} as Record<string, Summary>, ids: [] as string[] }
-          );
+          // Primero, filtrar las flashcards existentes por materialId
+          const existingSummaries = get()
+            .ids.map((id) => get().entities[id])
+            .filter((summary) => summary.material_id === materialId);
+
+          if (existingSummaries.length > 0) {
+            return existingSummaries;
+          }
+
+       
 
           set((state) => {
-            state.entities = { ...state.entities, ...normalized.entities };
-            state.ids = normalized.ids;
-            state.status.lastFetch = Date.now();
-            state.materialCache.set(cacheKey, {
-              entities: normalized.entities,
-              ids: normalized.ids,
-            });
+            state.status.isLoading = true;
+            state.status.error = null;
           });
+
+          const { data } = await summaryService.getSummariesByMaterial(
+            materialId
+          );
+          if (!data) throw new Error("No se recibieron datos válidos");
+          return data;
+
         } catch (error) {
           set((state) => {
             state.status.error =
@@ -227,6 +219,7 @@ export const useSummariesStore = create<SummaryState & SummaryActions>()(
                 ? error.message
                 : "Error al cargar los resúmenes del material";
           });
+          return [];
         } finally {
           set((state) => {
             state.status.isLoading = false;

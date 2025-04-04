@@ -2,6 +2,8 @@ import { useState, useCallback } from "react";
 import { useMaterials } from "./useMaterials";
 import { useFlashcards } from "./useFlashcards";
 import { useSummaries } from "./useSummaries";
+import { useTagsActions } from "./useTags";
+
 
 const useApp = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -10,7 +12,7 @@ const useApp = () => {
   const { fetchMaterials, materials } = useMaterials();
   const { getAllFlashcards, flashcards } = useFlashcards();
   const { getAllSummaries, summaries } = useSummaries();
-
+  const { getAllTags } = useTagsActions();
   // Función de carga unificada
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -20,7 +22,9 @@ const useApp = () => {
       await Promise.all([
         fetchMaterials(),
         getAllFlashcards(),
-        getAllSummaries()
+        getAllSummaries(),
+        getAllTags()
+    
       ]);
     } catch (err: unknown) {
       // Manejar el error de forma segura
@@ -29,7 +33,7 @@ const useApp = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchMaterials, getAllFlashcards, getAllSummaries]);
+  }, [fetchMaterials, getAllFlashcards, getAllSummaries,getAllTags]);
 
   // Función para refrescar los datos
   const onRefresh = useCallback(() => {

@@ -1,9 +1,13 @@
 import React from 'react';
 import { Lock, Key, Trash2 } from 'lucide-react';
-import { useAuthActions } from "../../../../hook/useAuth";
 
 export const AccountSection: React.FC = () => {
-  const {logout} = useAuthActions();
+  const handleDeleteAccount = () => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.')) {
+      // Aquí iría la lógica para eliminar la cuenta
+      console.log('Eliminar cuenta');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -65,7 +69,10 @@ export const AccountSection: React.FC = () => {
         </div>
 
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button className="btn-danger flex items-center gap-2">
+          <button 
+            className="btn-danger flex items-center gap-2"
+            onClick={handleDeleteAccount}
+          >
             <Trash2 className="w-5 h-5" />
             Eliminar Cuenta
           </button>

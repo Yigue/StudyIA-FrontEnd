@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { AlertCircle, Check, FileText, Upload, Sparkles, RefreshCw, PencilLine, BookOpen, Loader2 } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
+import { AlertCircle, Check, FileText, Upload, Sparkles, RefreshCw } from "lucide-react";
 
 import SubjectSelectorComponent from "./components/SubjectSelector";
 import FileUploaderComponent from './components/FileUploader';
@@ -10,141 +10,21 @@ import { useMaterials } from "../../hooks/useMaterials";
 import { useTags } from "../../hooks/useTags";
 import { AnalysisResult, Subject } from "./types/study.types";
 import { Tag } from "../../types";
+import AiControls from "./components/AiControls";
+
 
 // Tipo para los datos del material de estudio
 interface StudyMaterialDTO {
   title: string;
   summary: string;
   type: string;
-  tags: Tag[];
+  tags: string[];
   file?: File;
   content?: string;
 }
 
 // Nuevo componente para controles de IA
-const AIControls: React.FC<{
-  mode: 'both' | 'summary' | 'flashcards';
-  setMode: (mode: 'both' | 'summary' | 'flashcards') => void;
-  onGenerateContent: () => void;
-  generatingContent: boolean;
-  isFormValid: boolean;
-  progress: number;
-  isLoading: boolean;
-}> = ({ mode, setMode, onGenerateContent, generatingContent, isFormValid, progress, isLoading }) => {
-  return (
-    <div className="relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-      <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Asistente de IA
-            </h3>
-          </div>
-        </div>
-      </div>
 
-      <div className="p-6 space-y-4">
-        <p className="text-gray-600 dark:text-gray-300">
-          Deja que nuestra IA analice tu contenido y genere automáticamente resúmenes y flashcards para ayudarte a estudiar.
-        </p>
-        
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              ¿Qué quieres generar?
-            </label>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setMode('both')}
-              className={`px-4 py-2 text-sm font-medium rounded-md ${
-                mode === 'both'
-                  ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-500/20'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-              } inline-flex items-center gap-2`}
-              disabled={generatingContent}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Ambos</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('summary')}
-              className={`px-4 py-2 text-sm font-medium rounded-md ${
-                mode === 'summary'
-                  ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-500/20'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-              } inline-flex items-center gap-2`}
-              disabled={generatingContent}
-            >
-              <PencilLine className="w-4 h-4" />
-              <span>Solo Resumen</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('flashcards')}
-              className={`px-4 py-2 text-sm font-medium rounded-md ${
-                mode === 'flashcards'
-                  ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-500/20'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-              } inline-flex items-center gap-2`}
-              disabled={generatingContent}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Solo Flashcards</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={onGenerateContent}
-            disabled={isLoading || generatingContent || !isFormValid}
-            className={`w-full py-2.5 px-4 rounded-md font-medium flex items-center justify-center gap-2 ${
-              isFormValid
-                ? 'bg-indigo-600 dark:bg-indigo-700 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-            } transition-colors duration-150`}
-          >
-            {generatingContent ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generando contenido ({Math.round(progress)}%)...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Generar con IA</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {!isFormValid && (
-          <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-            Por favor, completa todos los campos requeridos (título, material y materia) antes de generar el contenido.
-          </p>
-        )}
-      </div>
-
-      {/* Barra de progreso para la generación */}
-      {generatingContent && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700">
-          <div 
-            className="h-1 bg-indigo-600 dark:bg-indigo-500 transition-all duration-300" 
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
 
 const StudyAreaPage: React.FC = () => {
   // Estado de la página
@@ -168,6 +48,8 @@ const StudyAreaPage: React.FC = () => {
     loading,
   } = useMaterials();
   
+
+  
   const { tags } = useTags();
   
   // Obtener valores derivados del estado
@@ -176,15 +58,6 @@ const StudyAreaPage: React.FC = () => {
   const generatingContent = loading.processingStatus === "pending";
 
   // Cargar etiquetas al montar el componente
-  const loadTags = useCallback(async () => {
-    if (tags.length === 0 && typeof tags.getAllTags === 'function') {
-      await tags.getAllTags();
-    }
-  }, [tags]);
-
-  useEffect(() => {
-    loadTags();
-  }, [loadTags]);
 
   // Convertir tags a Subject para el selector
   const subjects: Subject[] = useMemo(() => {
@@ -204,7 +77,7 @@ const StudyAreaPage: React.FC = () => {
   }, [selectedSubject, materialTitle, activeTab, files, text]);
 
   // Manejar análisis y generación de contenido
-  const handleAnalysis = useCallback(async () => {
+  const handleAnalysis = async () => {
     if (!formIsValid) {
       return;
     }
@@ -221,8 +94,7 @@ const StudyAreaPage: React.FC = () => {
           id: selectedSubject?.id || "", 
           name: selectedSubject?.name || "",
           color: "",
-          user_id: "",
-          created_at: new Date(),
+          createdAt: new Date(),
           count: 0
         }]
       };
@@ -238,10 +110,11 @@ const StudyAreaPage: React.FC = () => {
       let createdMaterial = null;
 
       if (activeTab === 'file' && files.length > 0) {
-        // Subir con archivo
+        
         materialData.file = files[0]; // Por ahora solo procesamos el primer archivo
         
         // Crear y procesar material en un solo paso
+        materialData.type = "file";
         createdMaterial = await createMaterial(materialData, { type: "file" });
         
         if (createdMaterial) {
@@ -282,7 +155,7 @@ const StudyAreaPage: React.FC = () => {
       console.error("Error en el procesamiento:", error);
       setError(error instanceof Error ? error.message : "Error desconocido en el procesamiento");
     }
-  }, [formIsValid, selectedSubject, materialTitle, activeTab, files, text, generationMode, createMaterial, processMaterial, clearMaterialsError]);
+  };
 
   // Reiniciar el formulario
   const handleReset = () => {
@@ -315,7 +188,7 @@ const StudyAreaPage: React.FC = () => {
       )}
 
       {/* Contenedor principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Panel izquierdo - Entrada de datos */}
         <div className="lg:col-span-7 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
@@ -414,7 +287,7 @@ const StudyAreaPage: React.FC = () => {
                 disabled={!formIsValid || isLoading}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 ${
                   !formIsValid || isLoading
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}
               >
@@ -434,16 +307,21 @@ const StudyAreaPage: React.FC = () => {
               <button
                 onClick={handleReset}
                 disabled={isLoading}
-                className="py-3 px-4 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="py-3 px-4 rounded-lg font-medium bg-gray-600 text-gray-400  hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Limpiar
               </button>
             </div>
           </div>
 
-          {/* Componentes de IA */}
-          <div className="grid grid-cols-1 gap-6">
-            <AIControls
+         
+        </div>
+
+        {/* Panel derecho - Resultados del análisis */}
+        <div className="lg:col-span-5 sticky top-6 ">
+           {/* Componentes de IA */}
+           <div className="grid grid-cols-1 gap-6 ">
+            <AiControls
               mode={generationMode}
               setMode={setGenerationMode}
               onGenerateContent={handleAnalysis}
@@ -452,18 +330,15 @@ const StudyAreaPage: React.FC = () => {
               progress={uploadProgress}
               isLoading={isLoading}
             />
-            <AIAssistant />
+          
+           <AIAssistant />
           </div>
-        </div>
-
-        {/* Panel derecho - Resultados del análisis */}
-        <div className="lg:col-span-5">
           <AnalysisResultsComponent 
             analysisResult={analysisResult}
             isGenerating={generatingContent}
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 };

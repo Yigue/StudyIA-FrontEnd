@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
-import { useFlashcards, useFlashcardsStatus } from '../../hook/useFlashcards';
-import { useTags } from '../../hook/useTags';
+import { useFlashcards, useFlashcardsStatus } from '../../hooks/useFlashcards';
+import { useTags } from '../../hooks/useTags';
 import FlashcardEditor from './components/FlashcardEditor';
 import { SearchBar } from './components/SearchBar';
 import { FilterPanel } from './components/FilterPanel';
@@ -30,7 +30,13 @@ const FlashcardsExplorerPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Obtener datos de los hooks centralizados
-  const { flashcards, pagination,toggleArchiveFlashcard ,getAllFlashcards} = useFlashcards();
+  const { 
+    flashcards, 
+    getAllFlashcards, 
+    toggleArchiveFlashcard,
+    pagination: { totalPages = 1 } 
+  } = useFlashcards();
+  
   const { isLoading } = useFlashcardsStatus();
   const { tags } = useTags();
 
@@ -45,14 +51,18 @@ const FlashcardsExplorerPage = () => {
     });
   }, [getAllFlashcards, currentPage, filters.difficulty, filters.subject]);
 
-  // Actualizar la página actual cuando cambia en el store
-  useEffect(() => {
-    updateStorePage(currentPage);
-  }, [currentPage, updateStorePage]);
+  // Actualizar la página en el store
+  const updateStorePage = (page: number) => {
+    getAllFlashcards({
+      page,
+      limit: 10
+    });
+  };
 
   // Manejar cambio de página
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    updateStorePage(page);
   };
 
   // Filtrar flashcards basados en búsqueda
@@ -67,7 +77,7 @@ const FlashcardsExplorerPage = () => {
     // Filtro de estado
     if (filters.status !== 'all') {
       const now = new Date();
-      const reviewDate = card.lastReviewed ? new Date(card.lastReviewed) : null;
+      const reviewDate = card.last_reviewed ? new Date(card.last_reviewed) : null;
       switch (filters.status) {
         case 'pending':
           return reviewDate === null || (reviewDate && reviewDate > now);
