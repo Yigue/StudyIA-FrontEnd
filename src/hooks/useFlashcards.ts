@@ -5,6 +5,7 @@ import {
   useUpdateFlashcard, 
   useDeleteFlashcard, 
   useReviewFlashcard,
+  useStudyFlashcards,
   useToggleArchiveFlashcard,
 } from './queries/useFlashcardsQuery';
 import { FlashcardCreateDTO, FlashcardUpdateDTO, FlashcardReviewDTO } from '../types';
@@ -22,7 +23,7 @@ export const useFlashcards = () => {
   
   // Queries
   const { data: flashcardsData, isLoading, error } = useFlashcardsQuery();
-  
+  const { data: studyFlashcardsData, isLoading: isStudyLoading, error: studyError } = useStudyFlashcards();
   // Mutaciones
   const createFlashcardMutation = useCreateFlashcard();
   const updateFlashcardMutation = useUpdateFlashcard();
@@ -43,6 +44,12 @@ export const useFlashcards = () => {
     await queryClient.invalidateQueries({ queryKey: ['flashcards', 'list'] });
     return flashcards;
   }, [queryClient, flashcards]);
+
+
+  const getStudyFlashcards = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['flashcards', 'study'] });
+    return studyFlashcardsData;
+  }, [queryClient, studyFlashcardsData]);
 
   const getFlashcardById = useCallback(async (id: string) => {
     const { data } = await queryClient.fetchQuery({
@@ -143,6 +150,7 @@ export const useFlashcards = () => {
     toggleArchiveFlashcard,
     setCurrentFlashcard,
     clearError,
+    getStudyFlashcards,
     
     // Utilidades
     filterByDifficulty,
@@ -166,7 +174,8 @@ export const useFlashcards = () => {
     setCurrentFlashcard,
     clearError,
     filterByDifficulty,
-    searchFlashcards
+    searchFlashcards,
+    getStudyFlashcards
   ]);
 };
 

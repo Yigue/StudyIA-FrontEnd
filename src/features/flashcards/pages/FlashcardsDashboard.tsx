@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useFlashcards, useFlashcardsActions } from '../../../hook/useFlashcards';
-import { useTags } from '../../../hook/useTags';
+import { useFlashcards, useFlashcardsStatus } from '../../../hooks/useFlashcards';
+import { useTags } from '../../../hooks/useTags';
 import { SearchBar } from '../components/SearchBar';
 import { FilterPanel } from '../components/FilterPanel';
 import { StatsPanel } from '../components/StatsPanel';
@@ -16,21 +16,23 @@ interface EditorState {
   initialData: Flashcard | null;
 }
 
+/**
+ * Panel de control de flashcards que muestra una visión general y permite
+ * filtrar, buscar y acceder a distintas funcionalidades relacionadas.
+ */
 const FlashcardsDashboard: React.FC = () => {
-  // Estado de la UI
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<FlashcardFilters>({
-    difficulty: 'all',
-    subject: 'all',
-    status: 'all'
-  });
+  // Estados de UI
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [editorState, setEditorState] = useState<EditorState>({
     isOpen: false,
     initialData: null
   });
 
-  // Obtener datos de los hooks centralizados
-  const { flashcards, isLoading } = useFlashcards();
+  // Obtener datos con hooks optimizados
+  const { flashcards, loading } = useFlashcards();
   const { tags } = useTags();
   const { getAllFlashcards, archiveFlashcard, createFlashcard, updateFlashcard } = useFlashcardsActions();
 
@@ -52,32 +54,25 @@ const FlashcardsDashboard: React.FC = () => {
       }
 
       // Filtro de dificultad
-      if (filters.difficulty !== 'all' && card.difficulty !== filters.difficulty) {
+      if (selectedDifficulty && card.difficulty !== selectedDifficulty) {
         return false;
       }
 
       // Filtro de materia
-      if (filters.subject !== 'all' && card.material_id !== filters.subject) {
+      if (selectedTags.length > 0 && !selectedTags.includes(card.material_id)) {
         return false;
       }
 
       // Filtro de estado
-      if (filters.status !== 'all') {
-        const now = new Date();
-        const reviewDate = new Date(card.next_review);
-        switch (filters.status) {
-          case 'pending':
-            return reviewDate > now;
-          case 'due':
-            return reviewDate <= now;
-          default:
-            return true;
-        }
+      const now = new Date();
+      const reviewDate = new Date(card.next_review);
+      if (reviewDate > now) {
+        return false;
       }
 
       return true;
     });
-  }, [flashcards, searchTerm, filters]);
+  }, [flashcards, searchTerm, selectedDifficulty, selectedTags]);
 
   // Stats para mostrar en el panel
   const stats: FlashcardStats = {
@@ -88,7 +83,15 @@ const FlashcardsDashboard: React.FC = () => {
 
   // Manejadores de eventos
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    if (key === 'difficulty') {
+      setSelectedDifficulty(value === 'all' ? null : value);
+    } else if (key === 'subject') {
+      if (value === 'all') {
+        setSelectedTags([]);
+      } else {
+        setSelectedTags([value]);
+      }
+    }
   };
 
   const handleEditFlashcard = (flashcard: Flashcard) => {
@@ -186,7 +189,11 @@ const FlashcardsDashboard: React.FC = () => {
               
               <div className="mt-4">
                 <FilterPanel 
-                  filters={filters} 
+                  filters={{
+                    difficulty: selectedDifficulty || 'all',
+                    subject: selectedTags.length > 0 ? selectedTags[0] : 'all',
+                    status: 'all'
+                  }}
                   onFilterChange={handleFilterChange}
                   subjects={subjects}
                 />
@@ -198,7 +205,7 @@ const FlashcardsDashboard: React.FC = () => {
 
           {/* Área de visualización de flashcards */}
           <div className="lg:col-span-3">
-            {isLoading ? (
+            {loading ? (
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                 <p className="text-gray-600">Cargando flashcards...</p>
               </div>

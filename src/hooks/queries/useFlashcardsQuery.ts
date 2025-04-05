@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as flashcardService from '../../services/flashcards/flashcardService';
-import { Flashcard, FlashcardCreateDTO, FlashcardUpdateDTO, FlashcardReviewDTO } from '../../types';
+import { FlashcardCreateDTO, FlashcardUpdateDTO, FlashcardReviewDTO } from '../../types';
 
 // Claves de query estructuradas jerárquicamente
 export const flashcardsKeys = {
@@ -58,14 +58,10 @@ export const useFlashcardsByMaterialQuery = (materialId: string) => {
 /**
  * Hook para obtener flashcards para repaso
  */
-export const useFlashcardsForReviewQuery = (params?: {
-  limit?: number;
-  difficulty?: "easy" | "medium" | "hard";
-  tags?: string;
-}) => {
+export const useStudyFlashcards = () => {
   return useQuery({
-    queryKey: flashcardsKeys.forReview(params),
-    queryFn: () => flashcardService.getFlashcardsForReview(params),
+    queryKey: flashcardsKeys.forReview(),
+    queryFn: () => flashcardService.getStudyFlashcards(),
     select: (response) => response.data,
   });
 };

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Clock, Calendar, BarChart3, Check, TimerReset, Brain } from 'lucide-react';
-import { useFlashcards } from '../../../hook/useFlashcards';
+import { useFlashcards } from '../../../hooks/useFlashcards';
 
 // Simulamos gráficos simples con divs, en un proyecto real usaríamos librería de gráficos
 const BarGraph = ({ data }: { data: { label: string; value: number; color: string }[] }) => {

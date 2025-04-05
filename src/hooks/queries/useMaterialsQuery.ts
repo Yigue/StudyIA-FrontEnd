@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as materialService from '../../services/studyMaterial/studyMaterialService';
 import { StudyMaterial, Params, CreateMaterialDTO, ApiProcessingOptions } from '../../types';
 
@@ -12,7 +12,7 @@ export const materialsKeys = {
 };
 
 /**
- * Hook para obtener lista de materiales con filtros
+ * Hook mejorado para obtener materiales con filtros y búsqueda
  */
 export const useMaterialsQuery = (params?: Params) => {
   return useQuery({
@@ -20,6 +20,7 @@ export const useMaterialsQuery = (params?: Params) => {
     queryFn: () => materialService.getAllStudyMaterials(params),
     select: (response) => response.data,
     staleTime: 5 * 60 * 1000, // 5 minutos
+    placeholderData: (previousData) => previousData, // Mantener datos anteriores mientras se carga
   });
 };
 
@@ -101,26 +102,5 @@ export const useDeleteMaterial = () => {
       queryClient.invalidateQueries({ queryKey: materialsKeys.lists() });
       queryClient.removeQueries({ queryKey: materialsKeys.detail(id) });
     },
-  });
-};
-
-/**
- * Hook para paginación infinita de materiales
- */
-export const useMaterialsInfiniteQuery = (filters: Params = {}) => {
-  return useInfiniteQuery({
-    queryKey: ['materials', 'infinite', filters],
-    queryFn: ({ pageParam = 1 }) => 
-      materialService.getAllStudyMaterials({ ...filters, page: pageParam, limit: 10 }),
-    getNextPageParam: (lastPage) => {
-      const meta = lastPage.meta;
-      return meta?.page < meta?.pages ? meta.page + 1 : undefined;
-    },
-    select: (data) => ({
-      pages: data.pages,
-      pageParams: data.pageParams,
-      // Aplanar los resultados para facilitar el uso
-      materials: data.pages.flatMap(page => page.data || [])
-    })
   });
 }; 

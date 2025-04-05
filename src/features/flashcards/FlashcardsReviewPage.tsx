@@ -23,7 +23,7 @@ const FlashcardsReviewPage = () => {
   // Obtener datos de los hooks centralizados
   const { 
     flashcards, 
-    getFlashcardsForReview, 
+    getStudyFlashcards, 
     reviewFlashcard,
     loading 
   } = useFlashcards();
@@ -32,12 +32,8 @@ const FlashcardsReviewPage = () => {
 
   // Cargar flashcards al montar el componente
   useEffect(() => {
-    getFlashcardsForReview({
-      limit: 50,
-      difficulty: filters.difficulty !== 'all' ? filters.difficulty as "easy" | "medium" | "hard" : undefined,
-      tags: filters.subject !== 'all' ? filters.subject : undefined
-    });
-  }, [getFlashcardsForReview, filters.difficulty, filters.subject]);
+    getStudyFlashcards();
+  }, [getStudyFlashcards]);
 
   // Filtrar flashcards basados en búsqueda
   const filteredFlashcards = useMemo(() => {

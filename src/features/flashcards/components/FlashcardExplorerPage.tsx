@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PlusCircle, Loader2 } from 'lucide-react';
-import { useFlashcards } from '../../../hook/useFlashcards';
-import { useTags } from '../../../hook/useTags';
+import { useFlashcards } from '../../../hooks/useFlashcards';
+import { useTags } from '../../../hooks/useTags';
 import FlashcardEditor from './FlashcardEditor';
 import { SearchBar } from './SearchBar';
 import { FilterPanel } from './FilterPanel';

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as summaryService from '../../services/summary/summaryService';
-import { Summary, SummaryCreateDTO, SummaryUpdateDTO } from '../../types';
+import {  SummaryCreateDTO, SummaryUpdateDTO } from '../../types';
 
 // Claves de query estructuradas jerárquicamente
 export const summariesKeys = {

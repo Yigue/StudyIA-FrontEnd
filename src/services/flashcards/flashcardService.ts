@@ -1,4 +1,5 @@
-import { Flashcard } from "../../types/flashcards/flashcards";
+
+import { Flashcard } from "@/types";
 import { FlashcardCreateDTO, FlashcardUpdateDTO, FlashcardReviewDTO } from "../../types/flashcards/flashcardsRequest";
 import { httpClient } from "../api/httpClient";
 
@@ -13,6 +14,11 @@ export async function getAllFlashcards(params?: {
   return httpClient<Flashcard[]>('/flashcards', {
     method: 'GET',
     params
+  });
+}
+export async function getStudyFlashcards() {
+  return httpClient<Flashcard[]>('/flashcards/study', {
+    method: 'GET',
   });
 }
 

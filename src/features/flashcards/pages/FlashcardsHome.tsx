@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Grid, Plus, Clock, TrendingUp } from 'lucide-react';
-import { useFlashcards } from '../../../hook/useFlashcards';
+import { useFlashcards } from '../../../hooks/useFlashcards';
 
 const FlashcardsHome: React.FC = () => {
   const { flashcards } = useFlashcards();
