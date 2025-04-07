@@ -23,7 +23,7 @@ export const useFlashcards = () => {
   
   // Queries
   const { data: flashcardsData, isLoading, error } = useFlashcardsQuery();
-  const { data: studyFlashcardsData, isLoading: isStudyLoading, error: studyError } = useStudyFlashcards();
+  const { data: studyFlashcardsData } = useStudyFlashcards();
   // Mutaciones
   const createFlashcardMutation = useCreateFlashcard();
   const updateFlashcardMutation = useUpdateFlashcard();
@@ -48,6 +48,7 @@ export const useFlashcards = () => {
 
   const getStudyFlashcards = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['flashcards', 'study'] });
+    
     return studyFlashcardsData;
   }, [queryClient, studyFlashcardsData]);
 

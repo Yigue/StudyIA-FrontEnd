@@ -1,6 +1,15 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, Book, Settings, LogOut, Brain } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { 
+  LayoutDashboard, 
+  Book, 
+  Settings, 
+  LogOut, 
+  Brain, 
+  Layers, 
+  FileBarChart,
+  Play
+} from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -16,27 +25,29 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const menuItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { id: "study", icon: Brain, label: "Estudiar" },
+    { id: "flashcards", icon: Layers, label: "Flashcards" },
+    { id: "analiticas", icon: FileBarChart, label: "Analíticas" },
+    { id: "sesion", icon: Play, label: "Sesión de Estudio" },
     { id: "library", icon: Book, label: "Biblioteca" },
-    { id: "flashcards", icon: LayoutDashboard, label: "Flashcards" },
     { id: "settings", icon: Settings, label: "Ajustes" },
   ];
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
-    navigate(`/${tab}`);
+    navigate({ to: `/${tab}` });
   };
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate({ to: '/' });
   };
 
   return (
     <div
-      className={`w-64  bg-white border-gray-200   dark:bg-gray-900 dark:border-gray-700' border-r p-4 transition-colors duration-200 flex flex-col h-full`}
+      className={`w-64 bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-700 border-r p-4 transition-colors duration-200 flex flex-col h-full`}
     >
       <div className="flex items-center gap-2 mb-8">
-        <Brain className={`w-8 h-8 dark:text-indigo-400' text-indigo-600`} />
+        <Brain className={`w-8 h-8 dark:text-indigo-400 text-indigo-600`} />
         <h1 className={`text-xl font-bold dark:text-white text-gray-800`}>
           StudyIA
         </h1>
@@ -49,8 +60,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             onClick={() => handleTabClick(item.id)}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 ${
               activeTab === item.id
-                ?  "dark:bg-indigo-900/50 dark:text-indigo-300 bg-indigo-50 text-indigo-600"
-                :  "dark:text-gray-300 dark:hover:bg-gray-800 text-gray-600 hover:bg-gray-50"
+                ? "dark:bg-indigo-900/50 dark:text-indigo-300 bg-indigo-50 text-indigo-600"
+                : "dark:text-gray-300 dark:hover:bg-gray-800 text-gray-600 hover:bg-gray-50"
             } transition-colors duration-200`}
           >
             <item.icon className="w-5 h-5" />

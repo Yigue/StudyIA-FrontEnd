@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as authService from '../../services/auth/auth.service';
-import { ForgotPasswordDTO, ResetPasswordDTO, userLoginDTO } from '../../types';
-import { userRegisterDTO } from '../../types/user/userRequest';
+import { 
+  UserLoginDTO, 
+  UserRegisterDTO, 
+  ForgotPasswordDTO, 
+  ResetPasswordDTO 
+} from '../../types/auth/index';
+import { setAuthToken } from '../../services/api/httpClient';
 
 // Claves de query estructuradas
 export const authKeys = {
@@ -16,12 +21,20 @@ export const authKeys = {
 export const useUserQuery = () => {
   return useQuery({
     queryKey: authKeys.user(),
-    queryFn: () => authService.getMe(),
-    select: (response) => response.data,
+    queryFn: () => {
+      // Verificar que tenemos token antes de intentar la petición
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('Intentando obtener datos de usuario sin token');
+        return Promise.reject(new Error('No hay token disponible'));
+      }
+      console.debug('Solicitando datos de usuario con token');
+      return authService.getMe();
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
     // No realizar la consulta automáticamente, sólo cuando haya token
     enabled: false,
-    retry: false,
+    retry: 1,
   });
 };
 
@@ -32,18 +45,41 @@ export const useLoginMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (credentials: userLoginDTO) => authService.login(credentials),
+    mutationFn: (credentials: UserLoginDTO) => authService.login(credentials),
     onSuccess: async (response) => {
-      // Guardar token en localStorage
-      if (response.data?.accessToken) {
-        localStorage.setItem('token', response.data.accessToken);
-        localStorage.setItem('refreshToken', response.data.refreshToken || '');
+      // Guardar token en localStorage y configurar axios
+
+      if (response.data.accessToken) {
+        const token = response.data.accessToken;
+        
+        console.debug('Login exitoso, guardando token...');
+        
+        // Guardar el token en localStorage
+        localStorage.setItem('token', token);
+        
+        // Si hay refresh token, guardarlo también
+        if (response.data.refreshToken) {
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+        
+        // Configurar el token en axios (ambas formas para asegurar compatibilidad)
+        setAuthToken(token);
+        
+        console.debug('Token configurado, obteniendo datos de usuario...');
+        
+        // Esperar un momento para que se aplique el token
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Invalidar user query para forzar recarga
         queryClient.invalidateQueries({ queryKey: authKeys.user() });
         
-        // Actualizar estado actual de usuario
-        queryClient.setQueryData(authKeys.user(), { data: response.data });
+        // Obtener los datos del usuario inmediatamente
+        try {
+          await queryClient.fetchQuery({ queryKey: authKeys.user() });
+          console.debug('Datos de usuario obtenidos correctamente');
+        } catch (error) {
+          console.error('Error al obtener datos del usuario:', error);
+        }
       }
     },
   });
@@ -56,18 +92,28 @@ export const useRegisterMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userData: userRegisterDTO) => authService.register(userData),
+    mutationFn: (userData: UserRegisterDTO) => authService.register(userData),
     onSuccess: async (response) => {
-      // Guardar token en localStorage
+      // Guardar token en localStorage y configurar axios
       if (response.data?.accessToken) {
-        localStorage.setItem('token', response.data.accessToken);
-        localStorage.setItem('refreshToken', response.data.refreshToken || '');
+        const token = response.data.accessToken;
+        
+        // Guardar el token en localStorage
+        localStorage.setItem('token', token);
+        
+        // Si hay refresh token, guardarlo también
+        if (response.data.refreshToken) {
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+        
+        // Configurar el token en axios (ambas formas para asegurar compatibilidad)
+        setAuthToken(token);
         
         // Invalidar user query para forzar recarga
         queryClient.invalidateQueries({ queryKey: authKeys.user() });
         
-        // Actualizar estado actual de usuario
-        queryClient.setQueryData(authKeys.user(), { data: response.data });
+        // Obtener los datos del usuario inmediatamente
+        await queryClient.fetchQuery({ queryKey: authKeys.user() });
       }
     },
   });
@@ -86,6 +132,9 @@ export const useLogoutMutation = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       
+      // Eliminar el token de las peticiones
+      setAuthToken('');
+      
       // Limpiar caché de usuario
       queryClient.removeQueries({ queryKey: authKeys.user() });
       
@@ -96,6 +145,10 @@ export const useLogoutMutation = () => {
     onError: () => {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      
+      // Eliminar el token de las peticiones
+      setAuthToken('');
+      
       queryClient.removeQueries({ queryKey: authKeys.user() });
       queryClient.clear();
     },
@@ -116,6 +169,10 @@ export const useRefreshTokenMutation = () => {
     onSuccess: (response) => {
       if (response.data?.accessToken) {
         localStorage.setItem('token', response.data.accessToken);
+        
+        // Establecer el nuevo token para todas las peticiones
+        setAuthToken(response.data.accessToken);
+        
         // Invalidar consultas relevantes
         queryClient.invalidateQueries({ queryKey: authKeys.user() });
       }

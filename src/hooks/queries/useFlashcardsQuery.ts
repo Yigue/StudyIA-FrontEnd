@@ -1,30 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as flashcardService from '../../services/flashcards/flashcardService';
-import { FlashcardCreateDTO, FlashcardUpdateDTO, FlashcardReviewDTO } from '../../types';
+import { ApiResponse } from '../../types/api';
+import { 
+  Flashcard, 
+  FlashcardCreateDTO, 
+  FlashcardUpdateDTO, 
+  FlashcardReviewDTO,
+  FlashcardStudyResponse,
+  FlashcardReviewResponse 
+} from '../../types/flashcards';
+import { QueryParams } from '../../types/common';
 
-// Claves de query estructuradas jerárquicamente
+
+// Claves de query estructuradas para flashcards
 export const flashcardsKeys = {
   all: ['flashcards'] as const,
   lists: () => [...flashcardsKeys.all, 'list'] as const,
-  list: (filters = {}) => [...flashcardsKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown> = {}) => [...flashcardsKeys.lists(), filters] as const,
   details: () => [...flashcardsKeys.all, 'detail'] as const,
   detail: (id: string) => [...flashcardsKeys.details(), id] as const,
-  byMaterial: (materialId: string) => [...flashcardsKeys.all, 'byMaterial', materialId] as const,
-  forReview: (params = {}) => [...flashcardsKeys.all, 'forReview', params] as const,
+  byMaterial: (materialId: string) => [...flashcardsKeys.all, 'by-material', materialId] as const,
+  study: () => [...flashcardsKeys.all, 'study'] as const,
 };
 
-/**
- * Hook para obtener todas las flashcards con filtros
- */
-export const useFlashcardsQuery = (params?: {
-  page?: number;
-  limit?: number;
-  difficulty?: "easy" | "medium" | "hard";
-  tags?: string;
-  archived?: boolean;
-}) => {
-  return useQuery({
-    queryKey: flashcardsKeys.list(params),
+
+export const useFlashcardsQuery = (params?: QueryParams) => {
+  return useQuery<ApiResponse<Flashcard[]>, Error, Flashcard[]>({
+    queryKey: flashcardsKeys.list(params || {}),
     queryFn: () => flashcardService.getAllFlashcards(params),
     select: (response) => response.data,
     staleTime: 5 * 60 * 1000, // 5 minutos
@@ -32,10 +34,10 @@ export const useFlashcardsQuery = (params?: {
 };
 
 /**
- * Hook para obtener un flashcard específico por ID
+ * Hook para obtener una flashcard específica por ID
  */
 export const useFlashcardQuery = (id: string) => {
-  return useQuery({
+  return useQuery<ApiResponse<Flashcard>, Error, Flashcard>({
     queryKey: flashcardsKeys.detail(id),
     queryFn: () => flashcardService.getFlashcardById(id),
     select: (response) => response.data,
@@ -44,41 +46,24 @@ export const useFlashcardQuery = (id: string) => {
 };
 
 /**
- * Hook para obtener flashcards por material
- */
-export const useFlashcardsByMaterialQuery = (materialId: string) => {
-  return useQuery({
-    queryKey: flashcardsKeys.byMaterial(materialId),
-    queryFn: () => flashcardService.getFlashcardsByMaterial(materialId),
-    select: (response) => response.data,
-    enabled: !!materialId, // Solo ejecutar si hay un ID de material
-  });
-};
-
-/**
- * Hook para obtener flashcards para repaso
+ * Hook para obtener flashcards para estudio
  */
 export const useStudyFlashcards = () => {
-  return useQuery({
-    queryKey: flashcardsKeys.forReview(),
+  return useQuery<ApiResponse<FlashcardStudyResponse[]>, Error, FlashcardStudyResponse[]>({
+    queryKey: flashcardsKeys.study(),
     queryFn: () => flashcardService.getStudyFlashcards(),
     select: (response) => response.data,
+    staleTime: 1 * 60 * 1000, // 1 minuto para datos de estudio
   });
 };
 
 /**
- * Hook para obtener flashcards para repaso por material
+ * Hook para obtener flashcards de un material específico
  */
-export const useFlashcardsForReviewMaterialQuery = (
-  materialId: string,
-  params?: {
-    limit?: number;
-    difficulty?: "easy" | "medium" | "hard";
-  }
-) => {
-  return useQuery({
-    queryKey: [...flashcardsKeys.byMaterial(materialId), 'forReview', params],
-    queryFn: () => flashcardService.getFlashcardsForReviewMaterial(materialId, params),
+export const useFlashcardsByMaterialQuery = (materialId: string) => {
+  return useQuery<ApiResponse<Flashcard[]>, Error, Flashcard[]>({
+    queryKey: flashcardsKeys.byMaterial(materialId),
+    queryFn: () => flashcardService.getFlashcardsByMaterial(materialId),
     select: (response) => response.data,
     enabled: !!materialId,
   });
@@ -89,26 +74,23 @@ export const useFlashcardsForReviewMaterialQuery = (
  */
 export const useCreateFlashcard = () => {
   const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (flashcard: FlashcardCreateDTO) => 
-      flashcardService.createFlashcard(flashcard),
+  
+  return useMutation<ApiResponse<Flashcard>, Error, FlashcardCreateDTO>({
+    mutationFn: (data: FlashcardCreateDTO) => flashcardService.createFlashcard(data),
     onSuccess: (response) => {
-      // Invalidar todas las listas de flashcards
+      // Invalidar las listas para forzar recarga
       queryClient.invalidateQueries({ queryKey: flashcardsKeys.lists() });
-      
-      // Si la flashcard tiene material_id, invalidar las específicas de ese material
-      if (response.data.material_id) {
-        queryClient.invalidateQueries({ 
-          queryKey: flashcardsKeys.byMaterial(response.data.material_id) 
-        });
-      }
-      
       // Actualizar caché con la nueva flashcard
       queryClient.setQueryData(
         flashcardsKeys.detail(response.data.id), 
-        { data: response.data }
+        response
       );
+      // Si estamos en una vista de material, actualizar esa lista también
+      if (response.data.materialId) {
+        queryClient.invalidateQueries({ 
+          queryKey: flashcardsKeys.byMaterial(response.data.materialId) 
+        });
+      }
     },
   });
 };
@@ -118,94 +100,41 @@ export const useCreateFlashcard = () => {
  */
 export const useUpdateFlashcard = () => {
   const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: { id: string; flashcard: FlashcardUpdateDTO }) => 
-      flashcardService.updateFlashcard(data.id, data.flashcard),
+  
+  return useMutation<ApiResponse<Flashcard>, Error, { id: string; flashcard: FlashcardUpdateDTO }>({
+    mutationFn: ({ id, flashcard }) => 
+      flashcardService.updateFlashcard(id, flashcard),
     onSuccess: (response, variables) => {
-      // Invalidar listas y actualizar detalle
+      // Invalidar listas y detalles específicos
       queryClient.invalidateQueries({ queryKey: flashcardsKeys.lists() });
-      
-      if (response.data.material_id) {
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.detail(variables.id) });
+      // Si tenemos el materialId, actualizar esa lista específica
+      if (response.data.materialId) {
         queryClient.invalidateQueries({ 
-          queryKey: flashcardsKeys.byMaterial(response.data.material_id) 
+          queryKey: flashcardsKeys.byMaterial(response.data.materialId) 
         });
       }
-      
-      queryClient.setQueryData(
-        flashcardsKeys.detail(variables.id), 
-        { data: response.data }
-      );
+      // También actualizar flashcards pendientes si la hubiera
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.study() });
     },
   });
 };
 
 /**
- * Hook para registrar revisión de flashcard con actualización optimista
+ * Hook para marcar una flashcard como revisada
  */
 export const useReviewFlashcard = () => {
   const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: { id: string; review: FlashcardReviewDTO }) => 
-      flashcardService.reviewFlashcard(data.id, data.review),
-    // Actualización optimista
-    onMutate: async (variables) => {
-      // Cancelar queries en curso para este flashcard
-      await queryClient.cancelQueries({ 
-        queryKey: flashcardsKeys.detail(variables.id) 
-      });
-      
-      // Guardar estado anterior
-      const previousFlashcard = queryClient.getQueryData(
-        flashcardsKeys.detail(variables.id)
-      );
-      
-      // Actualizar optimistamente
-      queryClient.setQueryData(
-        flashcardsKeys.detail(variables.id), 
-        (old: any) => ({
-          ...old,
-          data: {
-            ...old.data,
-            lastReviewed: new Date().toISOString(),
-            difficulty: variables.review.difficulty,
-          }
-        })
-      );
-      
-      // Retornar contexto para rollback
-      return { previousFlashcard };
-    },
-    onError: (_, variables, context) => {
-      // Revertir en caso de error
-      if (context?.previousFlashcard) {
-        queryClient.setQueryData(
-          flashcardsKeys.detail(variables.id),
-          context.previousFlashcard
-        );
-      }
-    },
-    onSettled: (_, __, variables) => {
-      // Revalidar datos después de la mutación
-      queryClient.invalidateQueries({ 
-        queryKey: flashcardsKeys.detail(variables.id) 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: flashcardsKeys.forReview() 
-      });
-      
-      if (variables.id) {
-        const flashcardData = queryClient.getQueryData(
-          flashcardsKeys.detail(variables.id)
-        ) as any;
-        
-        if (flashcardData?.data?.material_id) {
-          queryClient.invalidateQueries({ 
-            queryKey: flashcardsKeys.byMaterial(flashcardData.data.material_id) 
-          });
-        }
-      }
+  
+  return useMutation<ApiResponse<{ review: FlashcardReviewResponse; flashcard: { id: string; lastReviewed: string; } }>, Error, { id: string; review: FlashcardReviewDTO }>({
+    mutationFn: ({ id, review }) => 
+      flashcardService.reviewFlashcard(id, review),
+    onSuccess: (_, variables) => {
+      // Invalidar listas y detalles específicos
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.detail(variables.id) });
+      // Actualizar lista de pendientes
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.study() });
     },
   });
 };
@@ -215,50 +144,41 @@ export const useReviewFlashcard = () => {
  */
 export const useDeleteFlashcard = () => {
   const queryClient = useQueryClient();
-
-  return useMutation({
+  
+  return useMutation<ApiResponse<null>, Error, string>({
     mutationFn: (id: string) => flashcardService.deleteFlashcard(id),
     onSuccess: (_, id) => {
-      // Antes de invalidar, obtener material_id para invalidar consultas específicas
-      const flashcardData = queryClient.getQueryData(
-        flashcardsKeys.detail(id)
-      ) as any;
-      
-      // Invalidar consultas y eliminar de caché
+      // Invalidar listas y eliminar detalles específicos
       queryClient.invalidateQueries({ queryKey: flashcardsKeys.lists() });
       queryClient.removeQueries({ queryKey: flashcardsKeys.detail(id) });
-      
-      if (flashcardData?.data?.material_id) {
-        queryClient.invalidateQueries({ 
-          queryKey: flashcardsKeys.byMaterial(flashcardData.data.material_id) 
-        });
-      }
+      // También actualizar pendientes
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.study() });
     },
   });
 };
 
 /**
- * Hook para archivar/desarchivar flashcard
+ * Hook para archivar/desarchivar una flashcard
  */
 export const useToggleArchiveFlashcard = () => {
   const queryClient = useQueryClient();
-
-  return useMutation({
+  
+  return useMutation<ApiResponse<Flashcard>, Error, string>({
     mutationFn: (id: string) => flashcardService.toggleArchiveFlashcard(id),
     onSuccess: (response, id) => {
-      // Invalidar consultas y actualizar caché
+      // Invalidar listas y detalle específico
       queryClient.invalidateQueries({ queryKey: flashcardsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.detail(id) });
       
-      if (response.data.material_id) {
+      // Si tenemos el materialId, actualizar esa lista específica
+      if (response.data.materialId) {
         queryClient.invalidateQueries({ 
-          queryKey: flashcardsKeys.byMaterial(response.data.material_id) 
+          queryKey: flashcardsKeys.byMaterial(response.data.materialId) 
         });
       }
       
-      queryClient.setQueryData(
-        flashcardsKeys.detail(id), 
-        { data: response.data }
-      );
+      // También actualizar pendientes
+      queryClient.invalidateQueries({ queryKey: flashcardsKeys.study() });
     },
   });
 }; 

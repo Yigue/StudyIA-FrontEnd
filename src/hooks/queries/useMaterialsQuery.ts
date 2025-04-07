@@ -101,6 +101,10 @@ export const useDeleteMaterial = () => {
       // Invalidar listas y eliminar el detalle específico
       queryClient.invalidateQueries({ queryKey: materialsKeys.lists() });
       queryClient.removeQueries({ queryKey: materialsKeys.detail(id) });
+      
+      // También eliminar queries relacionadas con flashcards y resúmenes de este material
+      queryClient.removeQueries({ queryKey: ['flashcards', 'byMaterial', id] });
+      queryClient.removeQueries({ queryKey: ['summaries', 'byMaterial', id] });
     },
   });
 }; 

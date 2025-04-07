@@ -9,7 +9,14 @@ import {
   useResetPasswordMutation,
   useSendVerificationEmailMutation
 } from './queries/useAuthQuery';
-import { User, userLoginDTO, userRegisterDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../types';
+import { 
+  User, 
+  UserLoginDTO, 
+  UserRegisterDTO, 
+  ForgotPasswordDTO, 
+  ResetPasswordDTO 
+} from '../types/auth/index';
+import { setAuthToken } from '../services/api/httpClient';
 // import { useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -18,11 +25,11 @@ import { User, userLoginDTO, userRegisterDTO, ForgotPasswordDTO, ResetPasswordDT
  */
 export const useAuth = () => {
   // const queryClient = useQueryClient();
-  const [hasToken, setHasToken] = useState(Boolean(localStorage.getItem('token')));
+  const [hasToken, setHasToken] = useState(() => Boolean(localStorage.getItem('token')));
   
   // Queries y Mutaciones
   const { 
-    data: userData, 
+    data, 
     isLoading, 
     error, 
     refetch: fetchUser 
@@ -36,67 +43,148 @@ export const useAuth = () => {
   const resetPasswordMutation = useResetPasswordMutation();
   const sendVerificationEmailMutation = useSendVerificationEmailMutation();
   
-  // Comprobar si hay token al iniciar
-  useEffect(() => {
-    if (hasToken) {
-      fetchUser();
-    }
-  }, [hasToken, fetchUser]);
-
-  // Funciones con interfaz compatible con la versión anterior
-  const checkAuth = useCallback(async () => {
-    if (!hasToken) return null;
-    
-    try {
-      const { data } = await fetchUser();
-      return data;
-    } catch (error) {
-      console.error('Error al verificar autenticación:', error);
-      // Si hay error de autenticación, intentar refrescar el token
-      await refreshAccessToken();
-      return null;
-    }
-  }, [hasToken, fetchUser]);
-
-  const login = useCallback(async (credentials: userLoginDTO) => {
-    const result = await loginMutation.mutateAsync(credentials);
-    setHasToken(true);
-    return result.data;
-  }, [loginMutation]);
-
-  const register = useCallback(async (userData: userRegisterDTO) => {
-    const result = await registerMutation.mutateAsync(userData);
-    setHasToken(true);
-    return result.data;
-  }, [registerMutation]);
-
-  const logout = useCallback(async () => {
-    await logoutMutation.mutateAsync();
-    setHasToken(false);
-  }, [logoutMutation]);
-
+  // Definir la función refreshAccessToken primero para evitar problemas de hoisting
   const refreshAccessToken = useCallback(async () => {
     try {
       const result = await refreshTokenMutation.mutateAsync();
-      setHasToken(!!result.data?.accessToken);
-      return !!result.data?.accessToken;
+      const success = !!result.data?.accessToken;
+      setHasToken(success);
+      return success;
     } catch (error) {
       console.error('Error al refrescar token:', error);
       setHasToken(false);
       return false;
     }
   }, [refreshTokenMutation]);
+  
+  // Configurar el token almacenado al iniciar
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setAuthToken(token);
+      setHasToken(true);
+    } else {
+      setHasToken(false);
+    }
+  }, []);
+  
+  // Comprobar si hay token al iniciar
+  useEffect(() => {
+    if (hasToken) {
+      // Usar setTimeout para asegurar que el token se ha configurado en Axios
+      setTimeout(() => {
+        fetchUser().catch(error => {
+          console.error('Error al cargar usuario:', error);
+          setHasToken(false);
+        });
+      }, 0);
+    }
+  }, [hasToken, fetchUser]);
+
+  // Funciones con interfaz compatible con la versión anterior
+  const checkAuth = useCallback(async () => {
+    // Intentar obtener el token directamente
+    const storedToken = localStorage.getItem('token');
+    
+    if (!storedToken) {
+      console.log('No hay token almacenado');
+      return null;
+    }
+    
+    console.log('Token almacenado:', storedToken.substring(0, 10) + '...');
+    
+    // Asegurar que el token esté configurado en Axios
+    setAuthToken(storedToken);
+    
+    try {
+      console.log('Intentando verificar sesión...');
+      const result = await fetchUser();
+      console.log('Resultado de verificación:', result);
+      return result.data?.data;
+    } catch (error) {
+      console.error('Error al verificar autenticación:', error);
+      
+      // Verificar si el problema es de token
+      if (error instanceof Error && 
+          (error.message.includes('No hay token disponible') || 
+           error.message.includes('Unauthorized'))) {
+        console.log('Problema detectado con el token. Intentando refrescar...');
+      }
+      
+      // Intentar refrescar el token
+      console.log('Intentando refrescar token...');
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        console.log('Token refrescado correctamente, reintentando...');
+        try {
+          const retryResult = await fetchUser();
+          return retryResult.data?.data;
+        } catch (retryError) {
+          console.error('Error al reintentar después de refrescar token:', retryError);
+        }
+      }
+      console.log('No se pudo refrescar el token');
+      return null;
+    }
+  }, [fetchUser, refreshAccessToken]);
+
+  const login = useCallback(async (credentials: UserLoginDTO) => {
+    try {
+      const result = await loginMutation.mutateAsync(credentials);
+      setHasToken(true);
+      return result.data;
+    } catch (error) {
+      console.error('Error en login:', error);
+      throw error;
+    }
+  }, [loginMutation]);
+
+  const register = useCallback(async (userData: UserRegisterDTO) => {
+    try {
+      const result = await registerMutation.mutateAsync(userData);
+      setHasToken(true);
+      return result.data;
+    } catch (error) {
+      console.error('Error en registro:', error);
+      throw error;
+    }
+  }, [registerMutation]);
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error en logout:', error);
+    } finally {
+      setHasToken(false);
+    }
+  }, [logoutMutation]);
 
   const forgotPassword = useCallback(async (data: ForgotPasswordDTO) => {
-    await forgotPasswordMutation.mutateAsync(data);
+    try {
+      await forgotPasswordMutation.mutateAsync(data);
+    } catch (error) {
+      console.error('Error en recuperación de contraseña:', error);
+      throw error;
+    }
   }, [forgotPasswordMutation]);
 
   const resetPassword = useCallback(async (token: string, data: ResetPasswordDTO) => {
-    await resetPasswordMutation.mutateAsync({ token, passwordData: data });
+    try {
+      await resetPasswordMutation.mutateAsync({ token, passwordData: data });
+    } catch (error) {
+      console.error('Error en cambio de contraseña:', error);
+      throw error;
+    }
   }, [resetPasswordMutation]);
 
   const sendVerificationEmail = useCallback(async () => {
-    await sendVerificationEmailMutation.mutateAsync();
+    try {
+      await sendVerificationEmailMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error enviando email de verificación:', error);
+      throw error;
+    }
   }, [sendVerificationEmailMutation]);
 
   const clearError = useCallback(() => {
@@ -104,7 +192,7 @@ export const useAuth = () => {
   }, []);
 
   // Datos derivados
-  const user = useMemo<User | null>(() => userData || null, [userData]);
+  const user = useMemo<User | null>(() => data?.data || null, [data]);
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
   
   // Retornar objeto con misma estructura que el hook original

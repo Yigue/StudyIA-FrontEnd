@@ -1,18 +1,21 @@
 import { useAuth } from "../../hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { ConnectionErrorComponent } from "./components/ConnectionError";
 import RegisterForm from "./components/RegisterForm";
 import LoginForm from "./components/LoginForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AuthPage = () => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate({ to: '/dashboard' });
+    }
+  }, [isAuthenticated, navigate]);
 
   if (connectionError) {
     return (

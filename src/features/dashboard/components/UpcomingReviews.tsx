@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Clock, ChevronRight } from 'lucide-react';
 import { FlashcardReview } from '../types/dashboard.types';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 
 interface UpcomingReviewsProps {
   reviews: FlashcardReview[];

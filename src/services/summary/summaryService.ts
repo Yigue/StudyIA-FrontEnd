@@ -1,6 +1,6 @@
 import { Params } from '../../types';
-import { Summary } from '../../types/summary/summary';
-import { SummaryCreateDTO, SummaryUpdateDTO } from '../../types/summary/summaryRequest';
+import { Summary } from '../../types/summaries/summary';
+import { SummaryCreateDTO, SummaryUpdateDTO } from '../../types/summaries/summaryRequest';
 import { httpClient } from '../api/httpClient';
 
 // Obtener todos los resúmenes con paginación

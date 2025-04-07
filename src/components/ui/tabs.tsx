@@ -1,56 +1,72 @@
 import React from "react";
 import { cn } from "../../utils/cn";
 
-interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
-  defaultValue?: string;
-  value?: string;
-  onValueChange?: (value: string) => void;
-  children: React.ReactNode;
+interface Tab {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  disabled?: boolean;
+}
+
+interface TabsProps {
+  tabs: Tab[];
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  variant?: 'default' | 'pills' | 'underline';
 }
 
 export const Tabs: React.FC<TabsProps> = ({
-  className,
-  defaultValue,
+  tabs,
   value,
-  onValueChange,
-  children,
-  ...props
+  onChange,
+  className = '',
+  variant = 'default',
 }) => {
-  const [activeTab, setActiveTab] = React.useState(value || defaultValue || "");
-
-  React.useEffect(() => {
-    if (value !== undefined) {
-      setActiveTab(value);
+  const getTabStyles = (tabId: string, isDisabled: boolean = false) => {
+    const baseStyles = 'flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 focus:outline-none';
+    const disabledStyles = 'opacity-50 cursor-not-allowed';
+    
+    if (isDisabled) {
+      return `${baseStyles} ${disabledStyles}`;
     }
-  }, [value]);
-
-  const handleValueChange = React.useCallback(
-    (newValue: string) => {
-      setActiveTab(newValue);
-      onValueChange?.(newValue);
-    },
-    [onValueChange]
-  );
-
-  const contextValue = React.useMemo(
-    () => ({
-      value: activeTab,
-      onValueChange: handleValueChange,
-    }),
-    [activeTab, handleValueChange]
-  );
+    
+    const variants = {
+      default: {
+        active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded-md',
+        inactive: 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md'
+      },
+      pills: {
+        active: 'bg-indigo-600 text-white rounded-full shadow-sm',
+        inactive: 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full'
+      },
+      underline: {
+        active: 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400',
+        inactive: 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 border-b-2 border-transparent hover:border-gray-300 dark:hover:border-gray-700'
+      }
+    };
+    
+    return `${baseStyles} ${tabId === value ? variants[variant].active : variants[variant].inactive}`;
+  };
 
   return (
-    <TabsContext.Provider value={contextValue}>
-      <div
-        className={cn("flex flex-col", className)}
-        {...props}
-      >
-        {children}
-      </div>
-    </TabsContext.Provider>
+    <div className={`flex space-x-1 overflow-x-auto ${className}`}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => !tab.disabled && onChange(tab.id)}
+          className={getTabStyles(tab.id, tab.disabled)}
+          disabled={tab.disabled}
+        >
+          {tab.icon && <span className="mr-2">{tab.icon}</span>}
+          {tab.label}
+        </button>
+      ))}
+    </div>
   );
 };
+
+export default Tabs;
 
 interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;

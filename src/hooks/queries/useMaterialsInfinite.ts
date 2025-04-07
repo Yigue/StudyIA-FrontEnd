@@ -2,15 +2,6 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import * as materialService from '../../services/studyMaterial/studyMaterialService';
 import { ApiResponse, Params, StudyMaterial } from '@/types';
 
-interface MaterialsResponse {
-  data: StudyMaterial[];
-  meta: {
-    page: number;
-    pages: number;
-    limit: number;
-    total: number;
-  };
-}
 
 /**
  * Hook para paginación infinita de materiales con soporte completo para filtrado

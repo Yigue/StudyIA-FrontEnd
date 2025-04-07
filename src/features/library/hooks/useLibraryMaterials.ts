@@ -1,9 +1,23 @@
 import { useState, useCallback, useMemo } from "react";
-import { useMaterialsQuery, useMaterialQuery, useDeleteMaterial, useProcessMaterial } from "../../../hooks/queries/useMaterialsQuery";
+import { useMaterialsQuery, useDeleteMaterial, useProcessMaterial } from "../../../hooks/queries/useMaterialsQuery";
 import { useFlashcardsByMaterialQuery, useUpdateFlashcard } from "../../../hooks/queries/useFlashcardsQuery";
 import { useSummariesByMaterialQuery } from "../../../hooks/queries/useSummariesQuery";
-import { StudyMaterial, ApiProcessingOptions } from "@/types";
+import { StudyMaterial } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
+
+// Interfaz para opciones de procesamiento de la API
+interface ApiProcessingOptions {
+  generate_summary: boolean;
+  generate_flashcards: boolean;
+  summary_options?: {
+    max_length?: number;
+    format?: string;
+  };
+  flashcards_options?: {
+    count?: number;
+    difficulty?: "easy" | "medium" | "hard";
+  };
+}
 
 /**
  * Hook personalizado optimizado para gestionar materiales en la biblioteca.
@@ -27,18 +41,14 @@ export const useLibraryMaterials = () => {
   // Consultas condicionales basadas en el material seleccionado
   const { 
     data: materialFlashcards = [], 
-    isLoading: flashcardsLoading 
   } = useFlashcardsByMaterialQuery(
     selectedMaterial?.id || "", 
-    { enabled: !!selectedMaterial }
   );
   
   const { 
     data: materialSummaries = [],
-    isLoading: summariesLoading
   } = useSummariesByMaterialQuery(
     selectedMaterial?.id || "",
-    { enabled: !!selectedMaterial }
   );
   
   // Mutaciones
@@ -54,10 +64,6 @@ export const useLibraryMaterials = () => {
   );
   
   // Funciones de acción simplificadas
-  const fetchMaterials = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['materials'] });
-  }, [queryClient]);
-  
   const loadFlashcardsAndSummaries = useCallback(async (materialId: string) => {
     if (!materialId) return;
     
@@ -72,15 +78,24 @@ export const useLibraryMaterials = () => {
     
     if (window.confirm("¿Estás seguro de que deseas eliminar este material y sus flashcards/resúmenes asociados?")) {
       try {
-        await deleteMaterialMutation.mutateAsync(materialId);
+        // Primero limpiar las referencias a este material
         if (selectedMaterial?.id === materialId) {
           setSelectedMaterial(null);
         }
+        
+        // Luego eliminar el material
+        await deleteMaterialMutation.mutateAsync(materialId);
+        
+        // Después de eliminar el material, invalidar explícitamente todas las queries relacionadas
+        queryClient.invalidateQueries({ queryKey: ['materials'] });
+        queryClient.removeQueries({ queryKey: ['materials', 'detail', materialId] });
+        queryClient.removeQueries({ queryKey: ['flashcards', 'byMaterial', materialId] });
+        queryClient.removeQueries({ queryKey: ['summaries', 'byMaterial', materialId] });
       } catch (error) {
         console.error("Error al eliminar material:", error);
       }
     }
-  }, [deleteMaterialMutation, selectedMaterial?.id]);
+  }, [deleteMaterialMutation, selectedMaterial?.id, queryClient, setSelectedMaterial]);
   
   const generateContent = useCallback(async (materialId: string, options: {
     generateSummary: boolean;
@@ -110,11 +125,11 @@ export const useLibraryMaterials = () => {
     }
   }, [allMaterials, processMaterialMutation, loadFlashcardsAndSummaries]);
   
-  const changeFlashcardDifficulty = useCallback(async (flashcardId: string, difficulty: string | number) => {
+  const changeFlashcardDifficulty = useCallback(async (flashcardId: string, difficulty: "easy" | "medium" | "hard") => {
     try {
       await updateFlashcardMutation.mutateAsync({ 
         id: flashcardId, 
-        flashcard: { difficulty } 
+        data: { difficulty } 
       });
     } catch (error) {
       console.error("Error al actualizar la dificultad:", error);

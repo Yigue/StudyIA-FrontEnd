@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { BookOpen, Grid, Plus, Clock, TrendingUp } from 'lucide-react';
 import { useFlashcards } from '../../../hooks/useFlashcards';
 

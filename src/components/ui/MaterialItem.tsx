@@ -1,7 +1,8 @@
 import React from 'react';
-import { StudyMaterial } from '@/types';
+
 import { formatShortDate } from '../../features/library/utils/dateUtils';
 import { FileIcon, FileTextIcon, BookOpenIcon } from 'lucide-react';
+import { StudyMaterial } from '../../types';
 
 export interface MaterialItemProps {
   material: StudyMaterial;

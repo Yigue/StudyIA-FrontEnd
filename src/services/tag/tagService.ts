@@ -1,4 +1,4 @@
-import { Tag } from '../../types/tag/tag';
+import { Tag } from '../../types/tag';
 import { TagCreateDTO, TagUpdateDTO } from '../../types/tag/tagRequest';
 import { httpClient } from '../api/httpClient';
 

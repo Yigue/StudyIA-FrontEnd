@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth, } from "../../../hooks/useAuth";
+import { useNavigate } from "@tanstack/react-router";
+import { useAuth } from "../../../hooks/useAuth";
 import { userRegisterDTO } from "../../../types/user/userRequest";
 
 interface RegisterFormProps {
@@ -9,7 +9,7 @@ interface RegisterFormProps {
 
 function RegisterForm({ setIsLoginMode }: RegisterFormProps) {
   const navigate = useNavigate();
-  const { error, isAuthenticated,register, clearError } = useAuth();
+  const { error, isAuthenticated, register, clearError, isLoading } = useAuth();
 
   const [nombre, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,7 +17,7 @@ function RegisterForm({ setIsLoginMode }: RegisterFormProps) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard");
+      navigate({ to: "/dashboard" });
     }
   }, [isAuthenticated, navigate]);
 
@@ -32,7 +32,10 @@ function RegisterForm({ setIsLoginMode }: RegisterFormProps) {
       role_id,
     };
 
-    await register(userData);
+    const success = await register(userData);
+    if (success) {
+      navigate({ to: "/dashboard" });
+    }
   };
 
   return (
@@ -104,10 +107,10 @@ function RegisterForm({ setIsLoginMode }: RegisterFormProps) {
         <div>
           <button
             type="submit"
-            disabled={useAuth().isLoading}
+            disabled={isLoading}
             className="btn-primary w-full flex justify-center"
           >
-            {useAuth().isLoading ? "Procesando..." : "Registrarse"}
+            {isLoading ? "Procesando..." : "Registrarse"}
           </button>
         </div>
       </form>

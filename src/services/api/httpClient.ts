@@ -51,7 +51,8 @@ class ApiCache {
 // Instancia singleton del caché
 export const apiCache = new ApiCache();
 
-const baseURL = import.meta.env.VITE_API_BASEURL;
+// Obtener la URL base de las variables de entorno o usar un valor por defecto
+const baseURL = import.meta.env.VITE_API_BASEURL || 'http://localhost:3000/api';
 
 export const axiosInstance: AxiosInstance = axios.create({
   baseURL,
@@ -67,15 +68,25 @@ const MAX_AUTH_FAILURES = 3;
 
 axiosInstance.interceptors.request.use((config) => {
   try {
-    // Intentar obtener el token desde localStorage
-    const authStorage = localStorage.getItem('auth-storage');
-    if (authStorage) {
-      const parsedStorage = JSON.parse(authStorage);
-      const token = parsedStorage?.state?.token;
-      if (token) {
-        // Asegurarse de que config.headers exista
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
+    // Buscar el token directamente en localStorage
+    const token = localStorage.getItem('token');
+    
+    // Debug: Verificar token y URL
+    const url = config.url || '';
+    const isAuthEndpoint = url.includes('/auth/');
+    
+    if (isAuthEndpoint) {
+      console.debug(`Petición a endpoint de auth: ${url} - Token presente: ${!!token}`);
+    }
+    
+    if (token) {
+      // Asegurarse de que config.headers exista
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+      
+      // Debug: Confirmar que se ha añadido el token
+      if (isAuthEndpoint) {
+        console.debug('Token añadido a los headers de la petición');
       }
     }
   } catch (error) {
@@ -115,7 +126,8 @@ axiosInstance.interceptors.response.use(
       // Si hay demasiados fallos en poco tiempo, probablemente hay un bucle
       if (failedAuthAttempts >= MAX_AUTH_FAILURES) {
         console.error("Detectado posible bucle de autenticación. Forzando cierre de sesión.");
-        localStorage.removeItem('auth-storage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         failedAuthAttempts = 0;
         
         // Redirigir solo si no estamos ya redirigiendo
@@ -142,9 +154,22 @@ axiosInstance.interceptors.response.use(
 
 export const setAuthToken = (token: string) => {
   if (token) {
+    // Configurar el token en los headers por defecto de Axios
     axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
+    // Configurar también el formato en localStorage para redundancia
+    localStorage.setItem('token', token);
+    
+    // Verificación de configuración
+    console.debug('Token configurado correctamente en Axios');
   } else {
+    // Eliminar el token de los headers
     delete axiosInstance.defaults.headers.common['Authorization'];
+    
+    // También eliminar de localStorage
+    localStorage.removeItem('token');
+    
+    console.debug('Token eliminado de Axios');
   }
 };
 
@@ -162,8 +187,12 @@ export async function httpClient<TResponse, TRequest = null>(
 ): Promise<ApiResponse<TResponse>> {
   const method = options.method || 'GET';
   
-  // Solo usar caché para peticiones GET
-  if (method === 'GET' && !options.skipCache) {
+  // No usar caché para endpoints de autenticación
+  const isAuthEndpoint = endpoint.includes('/auth/');
+  const useCache = method === 'GET' && !options.skipCache && !isAuthEndpoint;
+  
+  // Solo usar caché para peticiones GET no relacionadas con autenticación
+  if (useCache) {
     const cacheKey = apiCache.generateKey(endpoint, options.params);
     const cachedData = apiCache.get<TResponse>(cacheKey);
     
@@ -191,15 +220,31 @@ export async function httpClient<TResponse, TRequest = null>(
     
     const response = await axiosInstance(config);
     
-    const responseData: ApiResponse<TResponse> = {
-      data: response.data.data,
-      status: "success",
-      message: response.data.message,
-      meta: response.data.meta
-    };
+    // Manejo flexible de la respuesta - verificamos si tiene una estructura estándar de API
+    // o si los datos están directamente en la respuesta
+    let responseData: ApiResponse<TResponse>;
     
-    // Guardar en caché solo si es GET y no se especificó skipCache
-    if (method === 'GET' && !options.skipCache) {
+    if (response.data && typeof response.data === 'object' && 'status' in response.data) {
+      // La respuesta ya tiene el formato esperado
+      responseData = {
+        data: response.data.data,
+        status: response.data.status,
+        message: response.data.message || '',
+        meta: response.data.meta
+      };
+    } else {
+      // La respuesta no tiene el formato esperado, lo adaptamos
+      
+      responseData = {
+        data: response.data.data as unknown as TResponse,
+        status: "success",
+        message: "",
+        meta: undefined
+      };
+    }
+    
+    // Guardar en caché solo si corresponde
+    if (useCache) {
       const cacheKey = apiCache.generateKey(endpoint, options.params);
       apiCache.set<TResponse>(cacheKey, responseData, options.cacheTime);
     }
@@ -207,13 +252,26 @@ export async function httpClient<TResponse, TRequest = null>(
     return responseData;
   } catch (error) {
     if (axios.isAxiosError(error)) {
+      console.error(`Error en petición ${method} a ${endpoint}:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // Error especial para problemas de CORS
+      if (error.message && error.message.includes('Network Error')) {
+        console.warn('Posible error de CORS detectado. Verifica la configuración del servidor.');
+      }
+      
       const apiError: ApiError = {
-        message: error.response?.data?.message || 'An unexpected error occurred',
-        code: error.response?.data?.code || 500,
+        message: error.response?.data?.message || 'Ocurrió un error inesperado',
+        code: error.response?.data?.code || error.response?.status || 500,
         status: "error"
       };
       throw apiError;
     }
+    console.error(`Error no Axios en petición ${method} a ${endpoint}:`, error);
     throw error;
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, CalendarDays, Tag as TagIcon, Loader2 } from 'lucide-react';
 import { StudyMaterial } from '../../../types/studyMaterial/studyMaterial';
-import { Tag } from '../../../types/tag/tag';
+import { Tag } from '../../../types/tag';
 
 interface MaterialsListProps {
   materials: StudyMaterial[];

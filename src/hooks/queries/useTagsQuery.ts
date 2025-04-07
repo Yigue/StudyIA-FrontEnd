@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as tagService from '../../services/tag/tagService';
-import { Tag, TagCreateDTO, TagUpdateDTO } from '@/types';
+import { TagCreateDTO, TagUpdateDTO } from '../../types';
+
 
 // Claves de query estructuradas jerárquicamente
 export const tagsKeys = {

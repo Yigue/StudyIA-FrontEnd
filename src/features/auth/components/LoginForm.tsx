@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../../hooks/useAuth";
 import { useEffect, useState } from "react";
 import { userLoginDTO } from "../../../types/user/userRequest";
@@ -16,7 +16,7 @@ function LoginForm({ setIsLoginMode }: LoginFormProps) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard");
+      navigate({ to: "/dashboard" });
     }
   }, [isAuthenticated, navigate]);
 

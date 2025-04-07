@@ -1,4 +1,4 @@
-import { ConnectionError } from '../types/auth.types';
+import { ConnectionError } from '../../../types/auth';
 
 interface ConnectionErrorProps extends ConnectionError {
   onRetry: () => void;

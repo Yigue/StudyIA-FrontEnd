@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BookOpen, Grid } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { useFlashcards } from '../../hooks/useFlashcards';
 import { useTags } from '../../hooks/useTags';
 import FlashcardsReviewComponent from './components/FlashcardsReviewComponent';

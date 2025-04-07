@@ -25,7 +25,6 @@ export const useDashboardData = (): DashboardData => {
     studySessions,
     upcomingReviews,
     isLoading,
-    error,
     refreshData
   } = useDashboardQuery();
 

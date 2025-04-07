@@ -1,9 +1,17 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../hooks/useAuth";
+import { useEffect } from "react";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirigir si no está autenticado después de cargar
+    if (!isLoading && !isAuthenticated) {
+      navigate({ to: '/' });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -13,8 +21,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  // Si no está autenticado, no renderizar los hijos
   if (!isAuthenticated) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return null;
   }
 
   return <>{children}</>;
