@@ -57,16 +57,10 @@ export const analyticsRoute = createRoute({
   component: lazyRouteComponent(() => import('../features/dashboard/AnalyticsPage'))
 });
 
-export const analyticsFlashcardsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
-  path: '/analiticas',
-  component: lazyRouteComponent(() => import('../features/analitics/FlashcardsAnalyticsPage'))
-});
-
 export const studySessionRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/sesion',
-  component: lazyRouteComponent(() => import('../features/studysesions/StudySessionPage'))
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/StudySessionPage'))
 });
 
 export const libraryRoute = createRoute({
@@ -85,31 +79,37 @@ export const studyRoute = createRoute({
 export const flashcardsRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/flashcards',
-  component: lazyRouteComponent(() => import('../features/flashcards/FlashcardsReviewPage'))
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsExplorerPage'))
+});
+
+export const flashcardsStudyRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/flashcards/study',
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/StudySessionPage'))
 });
 
 export const flashcardsExplorerRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/flashcards/explorador',
-  component: lazyRouteComponent(() => import('../features/flashcards/FlashcardsExplorerPage'))
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsExplorerPage'))
 });
 
 export const flashcardsStatsRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/flashcards/stats',
-  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsStatsOptimized'))
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsAnalyticsPage'))
 });
 
 export const flashcardsHomeRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/flashcards/home',
-  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsHome'))
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsExplorerPage'))
 });
 
 export const flashcardsDashboardRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/flashcards/dashboard',
-  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsDashboard'))
+  component: lazyRouteComponent(() => import('../features/flashcards/pages/FlashcardsExplorerPage'))
 });
 
 export const settingsRoute = createRoute({
@@ -124,11 +124,11 @@ const routeTree = rootRoute.addChildren([
   layoutRoute.addChildren([
     dashboardRoute,
     analyticsRoute,
-    analyticsFlashcardsRoute,
     studySessionRoute,
     libraryRoute,
     studyRoute,
     flashcardsRoute,
+    flashcardsStudyRoute,
     flashcardsExplorerRoute,
     flashcardsStatsRoute,
     flashcardsHomeRoute,

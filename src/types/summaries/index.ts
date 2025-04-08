@@ -2,24 +2,21 @@
  * Tipos relacionados con resúmenes
  */
 
+import { StudyMaterial } from "../materials";
+
 // Entidad principal de resumen
 export interface Summary {
   id: string;
-  materialId: string;
-  content: string;
+
+  summary_text: string;
   format: "bullet_points" | "paragraph" | "structured";
-  createdAt: string;
-  updatedAt: string;
+  material_id: string; // UUID del material
+  user_id: string; // UUID del creador
+  created_at: string; // ISO 8601
+  updated_at: string; // ISO 8601
+  material?: StudyMaterial;
 }
 
-// Resumen con detalles del material
-export interface SummaryWithMaterial extends Summary {
-  material: {
-    id: string;
-    title: string;
-    description?: string | null;
-  };
-}
 
 // DTOs para operaciones CRUD
 export interface SummaryCreateDTO {

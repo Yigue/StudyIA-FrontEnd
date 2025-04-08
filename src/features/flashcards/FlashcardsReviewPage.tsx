@@ -1,33 +1,29 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { BookOpen, Grid } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
-import { useFlashcards } from '../../hooks/useFlashcards';
-import { useTags } from '../../hooks/useTags';
-import FlashcardsReviewComponent from './components/FlashcardsReviewComponent';
-import { SearchBar } from './components/SearchBar';
-import { FilterPanel } from './components/FilterPanel';
-import { StatsPanel } from './components/StatsPanel';
-import { FlashcardFilters, FlashcardStats } from './types/flashcards.types';
+import { useState, useEffect, useMemo } from "react";
+import { BookOpen, Grid } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useFlashcards } from "../../hooks/useFlashcards";
+import { useTags } from "../../hooks/useTags";
+import FlashcardsReviewComponent from "./components/FlashcardsReviewComponent";
+import { SearchBar } from "./components/SearchBar";
+import { FilterPanel } from "./components/FilterPanel";
+import { StatsPanel } from "./components/StatsPanel";
+import { FlashcardFilters, FlashcardStats } from "../../types";
 
 const FlashcardsReviewPage = () => {
   // Estado de la UI
   const [showAnswer, setShowAnswer] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<FlashcardFilters>({
-    difficulty: 'all',
-    subject: 'all',
-    status: 'all'
+    difficulty: undefined,
+    tags: undefined,
+    archived: false,
   });
 
   // Obtener datos de los hooks centralizados
-  const { 
-    flashcards, 
-    getStudyFlashcards, 
-    reviewFlashcard,
-    loading 
-  } = useFlashcards();
-  
+  const { flashcards, getStudyFlashcards, reviewFlashcard, loading } =
+    useFlashcards();
+
   const { tags } = useTags();
 
   // Cargar flashcards al montar el componente
@@ -38,26 +34,29 @@ const FlashcardsReviewPage = () => {
   // Filtrar flashcards basados en búsqueda
   const filteredFlashcards = useMemo(() => {
     if (!flashcards) return [];
-    
+
     let filtered = [...flashcards];
 
     // Aplicar filtro de búsqueda
     if (searchTerm) {
-      filtered = filtered.filter(card => 
-        card.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        card.answer.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (card) =>
+          card.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          card.answer.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Aplicar filtro de estado
-    if (filters.status !== 'all') {
+    if (filters.status !== "all") {
       const now = new Date();
-      filtered = filtered.filter(card => {
-        const reviewDate = card.lastReviewed ? new Date(card.lastReviewed) : null;
+      filtered = filtered.filter((card) => {
+        const reviewDate = card.lastReviewed
+          ? new Date(card.lastReviewed)
+          : null;
         switch (filters.status) {
-          case 'pending':
+          case "pending":
             return reviewDate === null || (reviewDate && reviewDate > now);
-          case 'due':
+          case "due":
             return reviewDate !== null && reviewDate <= now;
           default:
             return true;
@@ -78,51 +77,52 @@ const FlashcardsReviewPage = () => {
   const stats: FlashcardStats = {
     total: flashcards?.length || 0,
     filtered: filteredFlashcards.length,
-    current: currentIndex + 1
+    current: currentIndex + 1,
   };
 
   // Obtener la flashcard actual
-  const currentFlashcard = filteredFlashcards.length > 0 ? filteredFlashcards[currentIndex] : null;
+  const currentFlashcard =
+    filteredFlashcards.length > 0 ? filteredFlashcards[currentIndex] : null;
 
   // Manejadores de eventos
   const handleToggleAnswer = () => setShowAnswer(true);
 
   const handleNext = () => {
     if (currentIndex < filteredFlashcards.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
       setShowAnswer(false);
     }
   };
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex((prev) => prev - 1);
       setShowAnswer(false);
     }
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleUpdateDifficulty = async (difficulty: number) => {
     if (!currentFlashcard) return;
-    
+
     try {
       await reviewFlashcard(currentFlashcard.id, {
         rating: difficulty,
-        notes: ""
+        notes: "",
       });
       handleNext();
     } catch (error) {
-      console.error('Error al actualizar flashcard:', error);
+      console.error("Error al actualizar flashcard:", error);
     }
   };
 
   // Mapear etiquetas para el selector de materias
-  const subjects = tags.map(tag => ({
+  const subjects = tags.map((tag) => ({
     id: tag.id,
-    name: tag.name
+    name: tag.name,
   }));
 
   return (
@@ -131,7 +131,7 @@ const FlashcardsReviewPage = () => {
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
           Repaso de Flashcards
         </h2>
-        <Link 
+        <Link
           to="/flashcards/explorador"
           className="btn-primary flex items-center gap-2"
         >
@@ -144,20 +144,17 @@ const FlashcardsReviewPage = () => {
         {/* Panel lateral con búsqueda, filtros y estadísticas */}
         <div className="lg:col-span-1 space-y-4">
           <div className="card">
-            <SearchBar 
-              value={searchTerm} 
-              onChange={setSearchTerm} 
-            />
-            
+            <SearchBar value={searchTerm} onChange={setSearchTerm} />
+
             <div className="mt-4">
-              <FilterPanel 
-                filters={filters} 
+              <FilterPanel
+                filters={filters}
                 onFilterChange={handleFilterChange}
                 subjects={subjects}
               />
             </div>
           </div>
-          
+
           <StatsPanel stats={stats} />
         </div>
 

@@ -1,7 +1,7 @@
 // Exportar todos los hooks desde un único punto para facilitar las importaciones
 
 // Hook de navegación con TanStack Router
-export { useRouter } from './useRouter';
+export { useRouter } from './shared/useRouter';
 
 // Hooks para la autenticación
 export { useAuth } from './useAuth';

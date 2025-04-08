@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { API } from '../../@types';
 import { ApiResponse, ApiError } from '../../types';
 import { Params } from '../../types';
 
@@ -10,10 +11,10 @@ interface CacheItem<T> {
 }
 
 class ApiCache {
-  private cache: Map<string, CacheItem<ApiResponse<unknown>>> = new Map();
+  private cache: Map<string, CacheItem<API.ApiResponse<unknown>>> = new Map();
   private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutos en milisegundos
 
-  public get<T>(key: string): ApiResponse<T> | null {
+  public get<T>(key: string): API.ApiResponse<T> | null {
     const item = this.cache.get(key);
     if (!item) return null;
     
@@ -23,10 +24,10 @@ class ApiCache {
       return null;
     }
     
-    return item.data as ApiResponse<T>;
+    return item.data as API.ApiResponse<T>;
   }
 
-  public set<T>(key: string, data: ApiResponse<T>, ttl = this.DEFAULT_TTL): void {
+  public set<T>(key: string, data: API.ApiResponse<T>, ttl = this.DEFAULT_TTL): void {
     const now = Date.now();
     this.cache.set(key, {
       data,
@@ -43,7 +44,7 @@ class ApiCache {
     this.cache.clear();
   }
 
-  public generateKey(endpoint: string, params?: Params): string {
+  public generateKey(endpoint: string, params?: API.Params): string {
     return `${endpoint}:${params ? JSON.stringify(params) : ''}`;
   }
 }
@@ -184,7 +185,7 @@ export async function httpClient<TResponse, TRequest = null>(
     cacheTime?: number; // Tiempo de caché en ms (null para no cachear)
     skipCache?: boolean; // Opción para saltarse el caché
   } = {}
-): Promise<ApiResponse<TResponse>> {
+): Promise<API.ApiResponse<TResponse>> {
   const method = options.method || 'GET';
   
   // No usar caché para endpoints de autenticación
@@ -222,7 +223,7 @@ export async function httpClient<TResponse, TRequest = null>(
     
     // Manejo flexible de la respuesta - verificamos si tiene una estructura estándar de API
     // o si los datos están directamente en la respuesta
-    let responseData: ApiResponse<TResponse>;
+    let responseData: API.ApiResponse<TResponse>;
     
     if (response.data && typeof response.data === 'object' && 'status' in response.data) {
       // La respuesta ya tiene el formato esperado

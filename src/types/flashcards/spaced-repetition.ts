@@ -1,4 +1,4 @@
-import { DifficultyLevel } from '../common';
+import { DifficultyLevel } from './index';
 import { Flashcard } from './index';
 
 /**
@@ -84,10 +84,33 @@ export interface StudySessionConfig {
   maxReviewsPerDay: number;      // Número máximo de revisiones por día
   learningSteps: number[];       // Pasos de aprendizaje en minutos (ej: [1, 10, 60, 360])
   reviewOrder: 'due' | 'difficulty' | 'random'; // Orden de revisión
-  studyMode: 'standard' | 'cram' | 'custom'; // Modo de estudio
+  studyMode: 'standard' | 'pomodoro' | 'exam' | 'daily_challenge' | 'cram' | 'custom'; // Modo de estudio
   includeTags?: string[];        // Tags a incluir
   excludeTags?: string[];        // Tags a excluir
   difficultyRange?: [DifficultyLevel, DifficultyLevel]; // Rango de dificultad
+  
+  // Configuración para modo Pomodoro
+  pomodoroConfig?: {
+    studyMinutes: number;        // Minutos de estudio (por defecto 25)
+    breakMinutes: number;        // Minutos de descanso (por defecto 5)
+    longBreakMinutes: number;    // Minutos de descanso largo (por defecto 15)
+    cyclesBeforeLongBreak: number; // Ciclos antes de un descanso largo (por defecto 4)
+  };
+  
+  // Configuración para modo examen
+  examConfig?: {
+    timeLimit: number;           // Límite de tiempo en minutos
+    questionsCount: number;      // Número de preguntas
+    passingScore: number;        // Puntaje para aprobar (1-100)
+    showFeedbackImmediately: boolean; // Mostrar feedback inmediatamente o al final
+  };
+  
+  // Configuración para desafío diario
+  dailyChallengeConfig?: {
+    cardsCount: number;          // Número de tarjetas para el desafío
+    difficulty: DifficultyLevel; // Dificultad del desafío
+    targetStreak: number;        // Racha objetivo para completar
+  };
 }
 
 // Evento de gamificación
